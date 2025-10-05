@@ -10,6 +10,8 @@ services:
         - PYTORCH_VERSION=2.8.0
         - TORCHAUDIO_VERSION=2.8.0a0+6e1c7fe
         - CTRANSLATE2_VERSION=4.5.0
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-stt:latest
     container_name: helios-stt
     hostname: stt
     restart: unless-stopped
@@ -84,6 +86,8 @@ services:
         - PYTHON_VERSION=310
         - PYTORCH_VERSION=2.8.0
         - TORCHAUDIO_VERSION=2.8.0a0+6e1c7fe
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-stt-stream:latest
     container_name: helios-stt-stream
     hostname: stt-stream
     restart: unless-stopped
@@ -212,6 +216,8 @@ services:
         - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
         - PYTHON_VERSION=310
         - PYTORCH_VERSION=2.8.0
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-tts:latest
     container_name: helios-tts
     hostname: tts
     restart: unless-stopped
@@ -317,6 +323,8 @@ services:
         - PYTHON_VERSION=310
         - PYTORCH_VERSION=2.8.0
         - LLAMA_CPP_PYTHON_VERSION=0.3.16
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-memory:latest
     container_name: helios-memory
     hostname: memory
     restart: unless-stopped
