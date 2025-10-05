@@ -1,0 +1,22 @@
+services:
+  stt:
+    build: null
+    image: ghcr.io/juno-ai-labs/juno-stt
+  stt-stream:
+    build: null
+    image: ghcr.io/juno-ai-labs/juno-stt-stream
+  llm:
+    build: null
+    image: ghcr.io/juno-ai-labs/juno-llm
+  tts:
+    build: null
+    image: ghcr.io/juno-ai-labs/juno-tts
+  monitor:
+    build: null
+    image: ghcr.io/juno-ai-labs/juno-monitor
+  memory:
+    build: null
+    image: ghcr.io/juno-ai-labs/juno-memory
+  cli:
+    build: null
+    image: ghcr.io/juno-ai-labs/juno-cli

@@ -1,0 +1,406 @@
+services:
+  # Speech-to-Text Service
+  stt:
+    build:
+      context: .
+      dockerfile: Dockerfile-stt
+      args:
+        - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
+        - PYTHON_VERSION=310
+        - PYTORCH_VERSION=2.8.0
+        - TORCHAUDIO_VERSION=2.8.0a0+6e1c7fe
+        - CTRANSLATE2_VERSION=4.5.0
+    container_name: helios-stt
+    hostname: stt
+    restart: unless-stopped
+
+    # GPU access for CUDA acceleration
+    runtime: nvidia
+
+    # Audio device access
+    devices:
+      - /dev/snd:/dev/snd
+
+    # Group permissions for audio
+    group_add:
+      - audio
+
+    # Required for pulse audio
+    user: "1000:1000"
+
+    # Shared IPC volume
+    volumes:
+      - ipc_sockets:/tmp/ipc
+      - /run/user/1000/pulse:/run/user/1000/pulse
+      - /home/andromeda/.config/pulse:/home/andromeda/.config/pulse:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+    # Environment
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - PYTHONPATH=/app:/app/shared
+      - PYTHONUNBUFFERED=1
+      - AUDIO_DEVICE_SUBSTRING=${AUDIO_DEVICE_SUBSTRING:-S330}
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      - CUDA_LAUNCH_BLOCKING=1
+      - AUDIO_DEVICE_SUBSTRING=pulse
+      # Pulse Audio
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - XDG_RUNTIME_DIR=/run/user/1000
+      - HOME=/home/andromeda
+    shm_size: "1gb"
+    ulimits:
+      memlock: -1
+      stack: 67108864
+
+    # Resource limits - allow GPU access for STT
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # Networking
+    networks:
+      - helios-net
+
+    # Depends on shared volume being ready
+    depends_on:
+      - setup-ipc
+
+  # Speech-to-Text Stream Service (Kyutai STT-1B)
+  stt-stream:
+    build:
+      context: .
+      dockerfile: Dockerfile-stt-stream
+      args:
+        - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
+        - PYTHON_VERSION=310
+        - PYTORCH_VERSION=2.8.0
+        - TORCHAUDIO_VERSION=2.8.0a0+6e1c7fe
+    container_name: helios-stt-stream
+    hostname: stt-stream
+    restart: unless-stopped
+
+    # GPU access for CUDA acceleration
+    runtime: nvidia
+
+    # Audio device access
+    devices:
+      - /dev/snd:/dev/snd
+
+    # Group permissions for audio
+    group_add:
+      - audio
+
+    # Required for pulse audio
+    user: "1000:1000"
+
+    # Shared volumes with IPC
+    volumes:
+      - ipc_sockets:/tmp/ipc
+      - /run/user/1000/pulse:/run/user/1000/pulse
+      - /home/andromeda/.config/pulse:/home/andromeda/.config/pulse:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+    # Environment
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - PYTHONPATH=/app:/app/shared
+      - PYTHONUNBUFFERED=1
+      - AUDIO_DEVICE_SUBSTRING=pulse
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      - CUDA_LAUNCH_BLOCKING=1
+      - NO_TORCH_COMPILE=1
+      # Pulse Audio
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - XDG_RUNTIME_DIR=/run/user/1000
+      - HOME=/home/andromeda
+    shm_size: "2gb"
+    ulimits:
+      memlock: -1
+      stack: 67108864
+
+    # Resource limits - allow GPU access for STT
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # Networking
+    networks:
+      - helios-net
+
+    # Depends on IPC setup
+    depends_on:
+      - setup-ipc
+
+  # Large Language Model Service
+  llm:
+    build:
+      context: .
+      dockerfile: Dockerfile-llm
+      args:
+        - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
+        - PYTHON_VERSION=310
+        - PYTORCH_VERSION=2.8.0
+        - LLAMA_CPP_PYTHON_VERSION=0.3.16
+    container_name: helios-llm
+    hostname: llm
+    restart: unless-stopped
+
+    # GPU access
+    runtime: nvidia
+
+    # IPC volumes
+    volumes:
+      - ipc_sockets:/tmp/ipc
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+    # Environment
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - DEBUG=${DEBUG:-false}
+      - PYTHONPATH=/app:/app/shared
+      - PYTHONUNBUFFERED=1
+      - CUDA_VISIBLE_DEVICES=0
+    shm_size: "20gb"
+    ulimits:
+      memlock: -1
+      stack: 67108864
+
+    # Resource limits - most of GPU memory
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # Networking
+    networks:
+      - helios-net
+
+    # Depends on IPC setup
+    depends_on:
+      - setup-ipc
+
+  # Text-to-Speech Service
+  tts:
+    build:
+      context: .
+      dockerfile: Dockerfile-tts
+      args:
+        - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
+        - PYTHON_VERSION=310
+        - PYTORCH_VERSION=2.8.0
+    container_name: helios-tts
+    hostname: tts
+    restart: unless-stopped
+
+    # GPU access for CUDA acceleration
+    runtime: nvidia
+
+    # Audio device access
+    devices:
+      - /dev/snd:/dev/snd
+
+    # Group permissions
+    group_add:
+      - audio
+
+    # Required for pulse audio
+    user: "1000:1000"
+
+    # Shared volumes
+    volumes:
+      - ipc_sockets:/tmp/ipc
+      - /run/user/1000/pulse:/run/user/1000/pulse
+      - /home/andromeda/.config/pulse:/home/andromeda/.config/pulse:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+    # Environment
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - PYTHONPATH=/app:/app/shared
+      - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
+      - ONNX_PROVIDER=CUDAExecutionProvider
+      - AUDIO_DEVICE_SUBSTRING=pulse
+      - PULSE_SINK_SUBSTRING=echocancel.spk
+      # Pulse Audio
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - XDG_RUNTIME_DIR=/run/user/1000
+      - HOME=/home/andromeda
+    shm_size: "1gb"
+    ulimits:
+      memlock: -1
+      stack: 67108864
+
+    # Resource limits
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # Networking
+    networks:
+      - helios-net
+
+    # Depends on IPC setup
+    depends_on:
+      - setup-ipc
+
+  # IPC Setup Service (ensures socket directory exists with proper permissions)
+  setup-ipc:
+    image: busybox
+    container_name: helios-ipc-setup
+    command: >
+      sh -c "
+        mkdir -p /tmp/ipc &&
+        chmod 777 /tmp/ipc &&
+        echo 'IPC directory ready'
+      "
+    volumes:
+      - ipc_sockets:/tmp/ipc
+    networks:
+      - helios-net
+
+  # Monitor Service (containerized Python monitor)
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile-monitor
+    container_name: helios-monitor
+    hostname: monitor
+    restart: unless-stopped
+    volumes:
+      - ipc_sockets:/tmp/ipc
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - helios-net
+    depends_on:
+      - setup-ipc
+
+  # Memory Service (stores and retrieves household memories)
+  memory:
+    build:
+      context: .
+      dockerfile: Dockerfile-memory
+      args:
+        - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
+        - PYTHON_VERSION=310
+        - PYTORCH_VERSION=2.8.0
+        - LLAMA_CPP_PYTHON_VERSION=0.3.16
+    container_name: helios-memory
+    hostname: memory
+    restart: unless-stopped
+
+    # GPU access
+    runtime: nvidia
+
+    # IPC volumes
+    volumes:
+      - ipc_sockets:/tmp/ipc
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+    # Environment
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - DEBUG=${DEBUG:-false}
+      - PYTHONPATH=/app:/app/shared
+      - PYTHONUNBUFFERED=1
+      - CUDA_VISIBLE_DEVICES=0
+    shm_size: "2gb"
+    ulimits:
+      memlock: -1
+      stack: 67108864
+
+    # Resource limits - share GPU with other services
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # Networking
+    networks:
+      - helios-net
+
+    # Depends on IPC setup
+    depends_on:
+      - setup-ipc
+
+  # CLI Client Service (command line interface for single prompts)
+  cli:
+    build:
+      context: .
+      dockerfile: Dockerfile-cli
+    container_name: helios-cli
+    hostname: cli
+    restart: "no" # Don't restart automatically
+    volumes:
+      - ipc_sockets:/tmp/ipc
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - helios-net
+    depends_on:
+      - setup-ipc
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - PYTHONPATH=/app:/app/shared
+      - PYTHONUNBUFFERED=1
+
+# Named volumes
+volumes:
+  # IPC communication via Unix domain sockets
+  ipc_sockets:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=100m,uid=1000,gid=1000,mode=0777"
+
+  # Persistent model cache
+  model_cache:
+    driver: local
+
+  # STT model cache (separate from LLM cache)
+  model_cache_stt:
+    driver: local
+
+# Custom network for service discovery
+networks:
+  helios-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
