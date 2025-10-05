@@ -158,6 +158,8 @@ services:
         - PYTHON_VERSION=310
         - PYTORCH_VERSION=2.8.0
         - LLAMA_CPP_PYTHON_VERSION=0.3.16
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-llm:latest
     container_name: helios-llm
     hostname: llm
     restart: unless-stopped
