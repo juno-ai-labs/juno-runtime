@@ -9,7 +9,7 @@
 - Anker plugged into front USB port
 
 # Getting started on a Nvidia Jetson Dev Kit
-1. Clone this repo `git clone https://github.com/juno-ai-labs/juno-runtime.git)
+1. Clone this repo `git clone https://github.com/juno-ai-labs/juno-runtime.git`
 2. `cd juno-runtime`
 3. `./run.sh`
 
