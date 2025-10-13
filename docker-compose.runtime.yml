@@ -2,21 +2,45 @@ services:
   stt:
     build: null
     image: ghcr.io/juno-ai-labs/juno-stt
+    networks: !override
+      - juno-net
   stt-stream:
     build: null
     image: ghcr.io/juno-ai-labs/juno-stt-stream
+    networks: !override
+      - juno-net
   llm:
     build: null
     image: ghcr.io/juno-ai-labs/juno-llm
+    networks: !override
+      - juno-net
   tts:
     build: null
     image: ghcr.io/juno-ai-labs/juno-tts
+    networks: !override
+      - juno-net
   monitor:
     build: null
     image: ghcr.io/juno-ai-labs/juno-monitor
+    networks: !override
+      - juno-net
   memory:
     build: null
     image: ghcr.io/juno-ai-labs/juno-memory
+    networks: !override
+      - juno-net
   cli:
     build: null
     image: ghcr.io/juno-ai-labs/juno-cli
+    networks: !override
+      - juno-net
+  setup-ipc:
+    networks: !override
+      - juno-net
+
+networks:
+  juno-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
