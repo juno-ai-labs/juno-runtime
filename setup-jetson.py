@@ -286,7 +286,7 @@ WantedBy=multi-user.target
             else:
                 print("Failed to reload systemd daemon.", file=sys.stderr)
 
-        enabled_proc = self.priv.run(["systemctl", "is-enabled", "jetson_clocks"], capture_output=True)
+        enabled_proc = subprocess.run(["systemctl", "is-enabled", "jetson_clocks"], capture_output=True)
         if not enabled_proc or getattr(enabled_proc, "returncode", 0) != 0:
             print("Enabling jetson_clocks service...")
             enable_proc = self.priv.run(["systemctl", "enable", "jetson_clocks"])
