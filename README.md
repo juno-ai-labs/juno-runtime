@@ -24,8 +24,7 @@ This will download the following services and run them in the foreground
 ## Files
 - `setup-echo.sh`: Sets up echo cancellation between the microphone and speaker
 - `setup-jetson.py`: Idempotent Jetson configuration script for Docker, power mode, and clocks. Maintains a `.setup_complete.toml` marker with version metadata (`2025.10.12`).
-- `run_juno.py`: Python helper that prepares the runtime Compose configuration and launches the foreground services.
-- `run.sh`: Shell launcher that ensures Jetson provisioning and directly orchestrates the runtime Compose services.
+- `run.sh`: Shell launcher that calls `setup-jetson.py` before preparing the runtime Compose configuration and starting the foreground services.
 - `docker-compose.yml` + `docker-compose.runtime.yml`: Composed Docker Compose files
 
 ## Auto-merged files
