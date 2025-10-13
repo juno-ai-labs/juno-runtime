@@ -1,0 +1,65 @@
+name: Ensure run.sh runs Jetson setup
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - run.sh
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  enforce:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Insert setup invocation when missing
+        run: |
+          python3 <<'PY'
+          import sys
+          from pathlib import Path
+
+          run_sh = Path('run.sh')
+          if not run_sh.is_file():
+              sys.exit(0)
+
+          trap_line = "trap 'rm -f \"$COMBINED_FILE\"' EXIT"
+          setup_command = '"$ROOT_DIR/setup-jetson.py"'
+
+          lines = run_sh.read_text(encoding='utf-8').splitlines()
+          if any(line.strip() == setup_command for line in lines):
+              sys.exit(0)
+
+          for idx, line in enumerate(lines):
+              if line.strip() == trap_line:
+                  indent = line[:len(line) - len(line.lstrip())]
+                  lines.insert(idx + 1, f"{indent}{setup_command}")
+                  run_sh.write_text("\n".join(lines) + "\n", encoding='utf-8')
+                  print('Inserted setup-jetson.py invocation into run.sh')
+                  break
+          else:
+              print('trap line not found in run.sh; no changes made', file=sys.stderr)
+              sys.exit(1)
+PY
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Commit changes if needed
+        id: commit
+        run: |
+          if git diff --quiet; then
+            echo "changes=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -am "Ensure run.sh calls setup-jetson.py"
+            echo "changes=true" >> "$GITHUB_OUTPUT"
+      - name: Push changes
+        if: steps.commit.outputs.changes == 'true'
+        run: git push
