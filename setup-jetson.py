@@ -298,9 +298,15 @@ WantedBy=multi-user.target
         else:
             print("jetson_clocks service already enabled.")
 
-        start_proc = self.priv.run(["systemctl", "start", "jetson_clocks"])
-        if start_proc and getattr(start_proc, "returncode", 0) == 0:
-            print("jetson_clocks service started.")
+        # Check if the service is already active (does not require root)
+        active_proc = subprocess.run(["systemctl", "is-active", "jetson_clocks"], capture_output=True)
+        if active_proc.returncode == 0:
+            print("jetson_clocks service already active.")
+        else:
+            # Service is not active, try to start it (requires root)
+            start_proc = self.priv.run(["systemctl", "start", "jetson_clocks"])
+            if start_proc and getattr(start_proc, "returncode", 0) == 0:
+                print("jetson_clocks service started.")
 
     def ensure_jetson_clocks(self) -> None:
         """Activate jetson_clocks either via systemd or direct invocation to maximise clocks."""
