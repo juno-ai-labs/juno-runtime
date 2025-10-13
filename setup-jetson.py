@@ -390,7 +390,9 @@ WantedBy=multi-user.target
             print("No changes were necessary.")
 
         if not self.root_missing_actions:
-            self.write_state_file()
+            # Only write state file if changes were made or if it doesn't exist yet
+            if self.changes_made or not self.state_file.exists():
+                self.write_state_file()
         else:
             print()
             print(
