@@ -47,7 +47,7 @@ jobs:
           else:
               print('trap line not found in run.sh; no changes made', file=sys.stderr)
               sys.exit(1)
-PY
+          PY
       - name: Configure git user
         run: |
           git config user.name "github-actions[bot]"
