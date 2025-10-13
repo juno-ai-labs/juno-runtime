@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_COMPOSE="$ROOT_DIR/docker-compose.yml"
 RUNTIME_COMPOSE="$ROOT_DIR/docker-compose.runtime.yml"
-PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$(basename "$ROOT_DIR")}" 
+PROJECT_NAME="juno" 
 
 if [[ ! -f "$BASE_COMPOSE" ]]; then
   echo "Base compose file not found: $BASE_COMPOSE" >&2
@@ -18,9 +18,6 @@ fi
 
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
-
-
-"$ROOT_DIR/setup-jetson.py"
 
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
