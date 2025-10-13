@@ -113,6 +113,15 @@ class JetsonSetup:
 
     def _read_file_with_priv(self, path: str) -> Optional[str]:
         """Fetch file contents using available privilege helpers without altering the file."""
+        # Try reading the file directly first, as many system files are world-readable
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except (FileNotFoundError, PermissionError, OSError):
+            # Fall back to privileged read if direct access fails
+            pass
+        
+        # Use privilege escalation if direct read failed
         result = self.priv.run(["cat", path], capture_output=True)
         if result and getattr(result, "returncode", 0) == 0:
             return (result.stdout or "")
