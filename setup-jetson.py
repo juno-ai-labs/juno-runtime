@@ -206,9 +206,7 @@ class JetsonSetup:
 
         self.power_mode_change_requested = True
         print(
-            "Changing power mode from {} to {} requires a reboot and the system will automatically restart if needed.".format(
-                current_mode or "unknown", self.power_mode
-            )
+            f"Changing power mode from {current_mode or 'unknown'} to {self.power_mode} requires a reboot and the system will automatically restart if needed."
         )
         print(f"Setting power mode to {self.power_mode}...")
         result = self.priv.run(
