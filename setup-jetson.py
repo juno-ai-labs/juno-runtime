@@ -16,8 +16,8 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional
 
-VERSION = "2025.10.12"
-PREV_VERSIONS: List[str] = []
+VERSION = "2025.10.13"
+PREV_VERSIONS: List[str] = ["2025.10.12"]
 
 
 def parse_args() -> argparse.Namespace:
@@ -173,17 +173,13 @@ class JetsonSetup:
             print("nvpmodel command not found; skipping power mode configuration.")
             return
 
+        # nvpmodel -q does not require root privileges, so run it directly first
         query_output = ""
-        if self.priv.have_priv:
-            result = self.priv.run(["nvpmodel", "-q"], capture_output=True)
-            if result and getattr(result, "returncode", 0) == 0:
-                query_output = (result.stdout or "") + (result.stderr or "")
-        if not query_output:
-            probe = subprocess.run(
-                ["nvpmodel", "-q"], capture_output=True, text=True
-            )
-            if probe.returncode == 0:
-                query_output = (probe.stdout or "") + (probe.stderr or "")
+        probe = subprocess.run(
+            ["nvpmodel", "-q"], capture_output=True, text=True
+        )
+        if probe.returncode == 0:
+            query_output = (probe.stdout or "") + (probe.stderr or "")
 
         current_mode = None
         # ``nvpmodel -q`` prints two lines summarising the current profile, for
