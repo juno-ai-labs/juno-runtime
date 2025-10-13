@@ -41,6 +41,7 @@ jobs:
               if line.strip() == trap_line:
                   indent = line[:len(line) - len(line.lstrip())]
                   lines.insert(idx + 1, f"{indent}{setup_command}")
+                  lines.insert(idx + 1, "\n") # Add extra line above setup_command
                   run_sh.write_text("\n".join(lines) + "\n", encoding='utf-8')
                   print('Inserted setup-jetson.py invocation into run.sh')
                   break
