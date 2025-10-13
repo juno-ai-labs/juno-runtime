@@ -366,7 +366,7 @@ WantedBy=multi-user.target
         self.ensure_docker_group_membership()
         self.ensure_jetson_clocks_service()
         self.ensure_power_mode()
-        self.ensure_jetson_clocks()
+        # self.ensure_jetson_clocks() # Commented this methof out as this as calling `jetson_clocks --show` requires root
 
         if self.root_missing_actions:
             print()
