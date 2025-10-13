@@ -300,7 +300,7 @@ WantedBy=multi-user.target
 
         # Check if the service is already active (does not require root)
         active_proc = subprocess.run(["systemctl", "is-active", "jetson_clocks"], capture_output=True)
-        if active_proc and getattr(active_proc, "returncode", 0) == 0:
+        if active_proc.returncode == 0:
             print("jetson_clocks service already active.")
         else:
             # Service is not active, try to start it (requires root)
