@@ -16,8 +16,8 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional
 
-VERSION = "2025.10.13"
-PREV_VERSIONS: List[str] = ["2025.10.12"]
+VERSION = "2025.10.12"
+PREV_VERSIONS: List[str] = []
 
 
 def parse_args() -> argparse.Namespace:
