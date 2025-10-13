@@ -121,60 +121,48 @@ class JetsonSetup:
         return None
 
     def ensure_docker_default_runtime(self) -> None:
-        """Configure Docker to use the NVIDIA runtime, updating daemon.json when required."""
+        """Inspect Docker's default runtime and remind the user to set it to NVIDIA if needed."""
         if shutil.which("docker") is None:
-            print("Docker is not installed; skipping docker runtime configuration.")
-            return
-        if not self.priv.have_priv:
-            self.note_root_required(
-                "Set Docker default runtime to nvidia in /etc/docker/daemon.json"
-            )
+            print("Docker is not installed; skipping docker runtime check.")
             return
 
-        desired_content = """{
-    \"default-runtime\": \"nvidia\",
-    \"runtimes\": {
-        \"nvidia\": {
-            \"path\": \"nvidia-container-runtime\",
-            \"runtimeArgs\": []
+        info_proc = subprocess.run(
+            ["docker", "info", "--format", "{{.DefaultRuntime}}"],
+            capture_output=True,
+            text=True,
+        )
+        if info_proc.returncode == 0:
+            # ``docker info --format '{{.DefaultRuntime}}'`` outputs the current
+            # default runtime on a single line, such as ``runc`` or
+            # ``nvidia``.  The script compares that token to ``nvidia`` and
+            # instructs the user to update ``/etc/docker/daemon.json`` if it
+            # differs.
+            default_runtime = (info_proc.stdout or "").strip()
+        else:
+            default_runtime = ""
+
+        if default_runtime == "nvidia":
+            print("Docker default runtime already set to nvidia.")
+            return
+
+        print(
+            "Docker default runtime is not 'nvidia'. Please update /etc/docker/daemon.json "
+            "to include the NVIDIA runtime configuration manually."
+        )
+        if self.priv.have_priv:
+            print(
+                """Example configuration:
+{
+    "default-runtime": "nvidia",
+    "runtimes": {
+        "nvidia": {
+            "path": "nvidia-container-runtime",
+            "runtimeArgs": []
         }
     }
-}
-"""
-        daemon_dir = "/etc/docker"
-        daemon_path = f"{daemon_dir}/daemon.json"
-        self.priv.run(["install", "-d", "-m", "0755", daemon_dir])
-
-        existing = self._read_file_with_priv(daemon_path)
-        if existing is not None and existing.strip() == desired_content.strip():
-            print("Docker daemon.json already configured for nvidia runtime.")
-            return
-
-        with tempfile.NamedTemporaryFile("w", delete=False) as tmp:
-            tmp.write(desired_content)
-            tmp_path = tmp.name
-        try:
-            print("Configuring Docker default runtime to nvidia...")
-            result = self.priv.run(["install", "-m", "0644", tmp_path, daemon_path])
-            if not result or getattr(result, "returncode", 0) != 0:
-                print(f"Failed to write {daemon_path}", file=sys.stderr)
-                return
-        finally:
-            try:
-                os.unlink(tmp_path)
-            except FileNotFoundError:
-                pass
-
-        self.changes_made = True
-        restart = self.priv.run(["systemctl", "restart", "docker"])
-        if restart and getattr(restart, "returncode", 0) == 0:
-            self.docker_restarted = True
-            print("Restarted docker service to apply runtime changes.")
-        else:
-            self.needs_restart = True
-            print(
-                "Unable to restart docker service automatically. Please restart docker manually."
+}"""
             )
+
 
     def ensure_docker_group_membership(self) -> None:
         """Add the target user to the docker group when necessary."""
@@ -395,9 +383,13 @@ WantedBy=multi-user.target
             print("Failed to run jetson_clocks.", file=sys.stderr)
 
     def write_state_file(self) -> None:
-        """Persist the completion timestamp and version so future runs can skip reconfiguration."""
+        """Persist the completion timestamp, version, and power mode to skip repeated setup."""
         timestamp = datetime.datetime.now().isoformat(timespec="seconds")
-        content = f"setup_on = \"{timestamp}\"\nversion = \"{VERSION}\"\n"
+        content = (
+            f"setup_on = \"{timestamp}\"\n"
+            f"version = \"{VERSION}\"\n"
+            f"power_mode = \"{self.power_mode}\"\n"
+        )
         self.state_file.write_text(content, encoding="utf-8")
         print()
         print(f"Recorded setup completion in {self.state_file.name}.")

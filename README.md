@@ -7,7 +7,7 @@
 
 - Running Jetpack 6.2
 - Anker plugged into front USB port
-- Run `./setup-jetson.py` to configure Docker, power mode, and Jetson clocks. The script records its completion in `.setup_complete.toml` with version `2025.10.12` so subsequent runs can detect when reconfiguration is required.
+- Run `./setup-jetson.py` to configure Docker, power mode, and Jetson clocks. The script records its completion in `.setup_complete.toml` with version `2025.10.12` and the applied power mode so subsequent runs can detect when reconfiguration is required.
 
 # Getting started on a Nvidia Jetson Dev Kit
 1. Clone this repo `git clone https://github.com/juno-ai-labs/juno-runtime.git`
@@ -23,7 +23,7 @@ This will download the following services and run them in the foreground
 
 ## Files
 - `setup-echo.sh`: Sets up echo cancellation between the microphone and speaker
-- `setup-jetson.py`: Idempotent Jetson configuration script for Docker, power mode, and clocks. Maintains a `.setup_complete.toml` marker with version metadata (`2025.10.12`).
+- `setup-jetson.py`: Idempotent Jetson configuration script for Docker, power mode, and clocks. Maintains a `.setup_complete.toml` marker with version metadata (`2025.10.12`) and the last applied power mode.
 - `run.sh`: Shell launcher that calls `setup-jetson.py` before preparing the runtime Compose configuration and starting the foreground services.
 - `docker-compose.yml` + `docker-compose.runtime.yml`: Composed Docker Compose files
 
