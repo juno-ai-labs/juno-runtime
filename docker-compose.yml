@@ -40,16 +40,14 @@ services:
 
     # Environment
     environment:
-      - DEBUG=${DEBUG:-false}
+      # System/Docker infrastructure config (overrides .env file defaults)
       - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
-      - AUDIO_DEVICE_SUBSTRING=${AUDIO_DEVICE_SUBSTRING:-S330}
       - NVIDIA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
       - CUDA_DEVICE_ORDER=PCI_BUS_ID
       - CUDA_LAUNCH_BLOCKING=1
-      - AUDIO_DEVICE_SUBSTRING=pulse
       # Pulse Audio
       - PULSE_SERVER=unix:/run/user/1000/pulse/native
       - XDG_RUNTIME_DIR=/run/user/1000
@@ -84,7 +82,7 @@ services:
       args:
         - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
         - PYTHON_VERSION=310
-        - PYTORCH_VERSION=2.8.0
+        - PYTORCH_VERSION=2.7.0
         - TORCHAUDIO_VERSION=2.8.0a0+6e1c7fe
       cache_from:
         - ghcr.io/juno-ai-labs/juno-stt-stream:latest
@@ -116,16 +114,14 @@ services:
 
     # Environment
     environment:
-      - DEBUG=${DEBUG:-false}
+      # System/Docker infrastructure config (overrides .env file defaults)
       - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
-      - AUDIO_DEVICE_SUBSTRING=pulse
       - NVIDIA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
       - CUDA_DEVICE_ORDER=PCI_BUS_ID
       - CUDA_LAUNCH_BLOCKING=1
-      - NO_TORCH_COMPILE=1
       # Pulse Audio
       - PULSE_SERVER=unix:/run/user/1000/pulse/native
       - XDG_RUNTIME_DIR=/run/user/1000
@@ -179,11 +175,11 @@ services:
 
     # Environment
     environment:
-      - NVIDIA_VISIBLE_DEVICES=0
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - DEBUG=${DEBUG:-false}
+      # System/Docker infrastructure config (overrides .env file defaults)
       - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
     shm_size: "20gb"
     ulimits:
@@ -246,15 +242,12 @@ services:
 
     # Environment
     environment:
-      - DEBUG=${DEBUG:-false}
+      # System/Docker infrastructure config (overrides .env file defaults)
       - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
       - NVIDIA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
-      - ONNX_PROVIDER=CUDAExecutionProvider
-      - AUDIO_DEVICE_SUBSTRING=pulse
-      - PULSE_SINK_SUBSTRING=echocancel.spk
       # Pulse Audio
       - PULSE_SERVER=unix:/run/user/1000/pulse/native
       - XDG_RUNTIME_DIR=/run/user/1000
@@ -340,11 +333,11 @@ services:
 
     # Environment
     environment:
-      - NVIDIA_VISIBLE_DEVICES=0
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - DEBUG=${DEBUG:-false}
+      # System/Docker infrastructure config (overrides .env file defaults)
       - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
     shm_size: "2gb"
     ulimits:
@@ -385,7 +378,7 @@ services:
     depends_on:
       - setup-ipc
     environment:
-      - DEBUG=${DEBUG:-false}
+      # System/Docker infrastructure config (overrides .env file defaults)
       - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
 
