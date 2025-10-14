@@ -4,7 +4,39 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_COMPOSE="$ROOT_DIR/docker-compose.yml"
 RUNTIME_COMPOSE="$ROOT_DIR/docker-compose.runtime.yml"
-PROJECT_NAME="juno" 
+PROJECT_NAME="juno"
+
+# Parse command line arguments
+RELEASE_TAG=""
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    # Supports the--release TAG style
+    --release)
+      if [[ -z "${2:-}" || "${2:-}" == --* ]]; then
+        echo "Error: --release requires a tag value" >&2
+        echo "Usage: $0 [--release TAG]" >&2
+        exit 1
+      fi
+      RELEASE_TAG="$2"
+      shift 2
+      ;;
+    # Supports the--release=TAG style
+    --release=*)
+      RELEASE_TAG="${1#*=}"
+      if [[ -z "$RELEASE_TAG" ]]; then
+        echo "Error: --release requires a tag value" >&2
+        echo "Usage: $0 [--release TAG]" >&2
+        exit 1
+      fi
+      shift
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      echo "Usage: $0 [--release TAG]" >&2
+      exit 1
+      ;;
+  esac
+done
 
 if [[ ! -f "$BASE_COMPOSE" ]]; then
   echo "Base compose file not found: $BASE_COMPOSE" >&2
@@ -19,11 +51,19 @@ fi
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
 
-
-"$ROOT_DIR/setup-jetson.py"
-
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
+
+# If a release tag is specified, update image tags in the combined config
+if [[ -n "$RELEASE_TAG" ]]; then
+  echo "Using release tag: $RELEASE_TAG"
+  # Replace image references to use the specified release tag
+  # Handles both implicit (no tag) and explicit tags like :latest
+  sed -i.bak -E "s|image: ghcr.io/juno-ai-labs/juno-([^:[:space:]]+)(:[^[:space:]]+)?|image: ghcr.io/juno-ai-labs/juno-\1:${RELEASE_TAG}|g" "$COMBINED_FILE"
+  rm -f "${COMBINED_FILE}.bak"
+else
+  echo "Using default (latest) image tags"
+fi
 
 # Define the runtime services that should be pulled and started.
 # Only the stt-stream, llm, and tts services are managed by this script.
