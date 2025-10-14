@@ -9,7 +9,6 @@ services:
         - PYTHON_VERSION=310
         - PYTORCH_VERSION=2.8.0
         - TORCHAUDIO_VERSION=2.8.0a0+6e1c7fe
-        - CTRANSLATE2_VERSION=4.5.0
       cache_from:
         - ghcr.io/juno-ai-labs/juno-stt:latest
     container_name: helios-stt
