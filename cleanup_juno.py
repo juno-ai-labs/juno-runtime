@@ -235,6 +235,226 @@ class ComposeResourceExtractor:
                     self.networks_merged.add(network_name)
 
 
+def parse_size_string(size_str: str) -> float:
+    """Convert Docker size string (e.g., '1.5GB', '500MB') to bytes."""
+    if not size_str or size_str == "0B":
+        return 0.0
+
+    size_str = size_str.strip().upper()
+    # Check longer units first to avoid matching 'B' when we want 'GB', etc.
+    multipliers = [
+        ('TB', 1024**4),
+        ('GB', 1024**3),
+        ('MB', 1024**2),
+        ('KB', 1024),
+        ('B', 1),
+    ]
+
+    for unit, multiplier in multipliers:
+        if size_str.endswith(unit):
+            try:
+                return float(size_str[:-len(unit)]) * multiplier
+            except ValueError:
+                return 0.0
+    return 0.0
+
+
+def format_bytes(bytes_value: float) -> str:
+    """Format bytes into human-readable string."""
+    if bytes_value == 0:
+        return "0B"
+
+    units = ['B', 'KB', 'MB', 'GB', 'TB']
+    unit_index = 0
+    value = float(bytes_value)
+
+    while value >= 1024 and unit_index < len(units) - 1:
+        value /= 1024
+        unit_index += 1
+
+    return f"{value:.2f}{units[unit_index]}"
+
+
+class DockerReporter:
+    """Generate reports on Docker resources."""
+
+    def __init__(self, patterns: List[str] = None):
+        self.patterns = patterns or ["juno", "helios"]
+
+    def get_leftover_containers(self) -> List[Dict[str, str]]:
+        """Get remaining containers matching patterns."""
+        containers = []
+        result = run_command(
+            ["docker", "ps", "-a", "--format", "{{.ID}}|{{.Names}}|{{.Size}}|{{.Status}}"],
+            capture_output=True
+        )
+
+        if result and result.returncode == 0 and result.stdout:
+            for line in result.stdout.strip().split("\n"):
+                if not line:
+                    continue
+                parts = line.split("|")
+                if len(parts) >= 4:
+                    container_id, name, size, status = parts[0], parts[1], parts[2], parts[3]
+                    if any(pattern in name.lower() for pattern in self.patterns):
+                        containers.append({
+                            "id": container_id,
+                            "name": name,
+                            "size": size,
+                            "status": status
+                        })
+
+        return containers
+
+    def get_leftover_images(self) -> List[Dict[str, str]]:
+        """Get remaining images matching patterns."""
+        images = []
+        result = run_command(
+            ["docker", "images", "--format", "{{.ID}}|{{.Repository}}:{{.Tag}}|{{.Size}}"],
+            capture_output=True
+        )
+
+        if result and result.returncode == 0 and result.stdout:
+            for line in result.stdout.strip().split("\n"):
+                if not line:
+                    continue
+                parts = line.split("|")
+                if len(parts) >= 3:
+                    image_id, name, size = parts[0], parts[1], parts[2]
+                    if any(pattern in name.lower() for pattern in self.patterns):
+                        images.append({
+                            "id": image_id,
+                            "name": name,
+                            "size": size
+                        })
+
+        return images
+
+    def get_leftover_volumes(self) -> List[Dict[str, str]]:
+        """Get remaining volumes matching patterns."""
+        volumes = []
+        result = run_command(
+            ["docker", "volume", "ls", "--format", "{{.Name}}|{{.Size}}"],
+            capture_output=True
+        )
+
+        if result and result.returncode == 0 and result.stdout:
+            for line in result.stdout.strip().split("\n"):
+                if not line:
+                    continue
+                parts = line.split("|")
+                if len(parts) >= 1:
+                    name = parts[0]
+                    size = parts[1] if len(parts) >= 2 else "N/A"
+                    if any(pattern in name.lower() for pattern in self.patterns):
+                        volumes.append({
+                            "name": name,
+                            "size": size
+                        })
+
+        return volumes
+
+    def get_leftover_networks(self) -> List[Dict[str, str]]:
+        """Get remaining networks matching patterns."""
+        networks = []
+        result = run_command(
+            ["docker", "network", "ls", "--format", "{{.ID}}|{{.Name}}|{{.Driver}}"],
+            capture_output=True
+        )
+
+        if result and result.returncode == 0 and result.stdout:
+            for line in result.stdout.strip().split("\n"):
+                if not line:
+                    continue
+                parts = line.split("|")
+                if len(parts) >= 3:
+                    network_id, name, driver = parts[0], parts[1], parts[2]
+                    if any(pattern in name.lower() for pattern in self.patterns):
+                        networks.append({
+                            "id": network_id,
+                            "name": name,
+                            "driver": driver
+                        })
+
+        return networks
+
+    def calculate_total_size(self, items: List[Dict[str, str]], size_key: str = "size") -> float:
+        """Calculate total size in bytes from a list of items."""
+        total = 0.0
+        for item in items:
+            size_str = item.get(size_key, "0B")
+            # Handle container size format "123MB (virtual 456MB)"
+            if "(" in size_str:
+                size_str = size_str.split("(")[0].strip()
+            total += parse_size_string(size_str)
+        return total
+
+    def print_report(self) -> None:
+        """Print a comprehensive report of leftover resources."""
+        log("\n" + "="*70)
+        log("=== POST-CLEANUP REPORT ===")
+        log("="*70)
+
+        # Get leftover resources
+        containers = self.get_leftover_containers()
+        images = self.get_leftover_images()
+        volumes = self.get_leftover_volumes()
+        networks = self.get_leftover_networks()
+
+        # Containers
+        log(f"\n📦 Leftover Containers: {len(containers)}")
+        if containers:
+            total_size = self.calculate_total_size(containers)
+            log(f"   Total size: {format_bytes(total_size)}")
+            for container in containers:
+                log(f"   - {container['name']} ({container['status']}) - {container['size']}")
+        else:
+            log("   ✓ No leftover containers found")
+
+        # Images
+        log(f"\n🖼️  Leftover Images: {len(images)}")
+        if images:
+            total_size = self.calculate_total_size(images)
+            log(f"   Total size: {format_bytes(total_size)}")
+            for image in images:
+                log(f"   - {image['name']} - {image['size']}")
+        else:
+            log("   ✓ No leftover images found")
+
+        # Volumes
+        log(f"\n💾 Leftover Volumes: {len(volumes)}")
+        if volumes:
+            total_size = self.calculate_total_size(volumes)
+            if total_size > 0:
+                log(f"   Total size: {format_bytes(total_size)}")
+            else:
+                log("   Total size: Unable to determine (volume sizes not available)")
+            for volume in volumes:
+                log(f"   - {volume['name']} - {volume['size']}")
+        else:
+            log("   ✓ No leftover volumes found")
+
+        # Networks
+        log(f"\n🌐 Leftover Networks: {len(networks)}")
+        if networks:
+            for network in networks:
+                log(f"   - {network['name']} ({network['driver']})")
+        else:
+            log("   ✓ No leftover networks found")
+
+        # Overall summary
+        log("\n" + "="*70)
+        total_items = len(containers) + len(images) + len(volumes) + len(networks)
+        if total_items == 0:
+            log("✅ Cleanup successful! No Juno/Helios resources remain.")
+        else:
+            log(f"⚠️  {total_items} item(s) still present. You may need to:")
+            log("   - Stop running containers manually")
+            log("   - Force remove images: docker rmi -f <image>")
+            log("   - Remove volumes: docker volume rm <volume>")
+        log("="*70 + "\n")
+
+
 class DockerCleaner:
     """Clean up Docker resources."""
 
@@ -390,6 +610,19 @@ def main() -> int:
     # Clean up
     cleaner = DockerCleaner(extractor, dry_run=args.dry_run)
 
+    log("\n--- Bringing Down Services ---")
+    log("Stopping all running services gracefully...")
+    for project_name in extractor.project_names:
+        log(f"  Stopping compose project: {project_name}")
+        cmd = [
+            "docker", "compose",
+            "-p", project_name,
+            "-f", str(base_compose),
+            "-f", str(runtime_compose),
+            "down"
+        ]
+        run_command(cmd, dry_run=args.dry_run)
+
     log("\n--- Cleaning Containers ---")
     cleaner.clean_containers()
 
@@ -407,6 +640,10 @@ def main() -> int:
 
     if not args.dry_run:
         log("\n✓ Cleanup complete!")
+
+        # Generate post-cleanup report
+        reporter = DockerReporter(patterns=["juno", "helios"])
+        reporter.print_report()
     else:
         log("\n✓ Dry-run complete! Run without --dry-run to actually clean up.")
 
