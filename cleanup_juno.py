@@ -501,7 +501,7 @@ class DockerCleaner:
                 if result and result.returncode == 0:
                     matching_images = result.stdout.strip().split("\n")
                     for img in matching_images:
-                        if img and img != "<none>:<none>":
+                        if img:
                             run_command(["docker", "rmi", "-f", img], dry_run=self.dry_run)
 
     def clean_volumes(self) -> None:
@@ -539,6 +539,64 @@ class DockerCleaner:
                 prefixed_network = f"{project}_{network}"
                 log(f"  Removing network: {prefixed_network}")
                 run_command(["docker", "network", "rm", prefixed_network], dry_run=self.dry_run)
+
+    def clean_leftover_images_by_pattern(self) -> None:
+        """Remove any remaining images matching juno/helios patterns."""
+        log("Searching for leftover images matching patterns...")
+
+        # Get all images matching the patterns
+        result = run_command(
+            ["docker", "images", "--format", "{{.ID}}|{{.Repository}}:{{.Tag}}"],
+            capture_output=True
+        )
+
+        if not result or result.returncode != 0 or not result.stdout:
+            log("  No images found or error occurred")
+            return
+
+        leftover_images = []
+        for line in result.stdout.strip().split("\n"):
+            if not line:
+                continue
+            parts = line.split("|")
+            if len(parts) >= 2:
+                image_id, image_name = parts[0], parts[1]
+                # Check if image matches any pattern
+                if any(pattern in image_name.lower() for pattern in ["juno", "helios"]):
+                    leftover_images.append((image_id, image_name))
+
+        if not leftover_images:
+            log("  No leftover images found")
+            return
+
+        log(f"  Found {len(leftover_images)} leftover image(s)")
+        for image_id, image_name in leftover_images:
+            log(f"  Removing leftover image: {image_name} ({image_id})")
+            run_command(["docker", "rmi", "-f", image_id], dry_run=self.dry_run)
+
+    def clean_dangling_images(self) -> None:
+        """Remove dangling images with user confirmation."""
+        log("Checking for dangling images...")
+
+        if self.dry_run:
+            log("[DRY-RUN] Would prompt: Remove ALL dangling images (including non-Juno)? [y/N]", prefix="")
+            log("[DRY-RUN] Would run: docker image prune -f (if confirmed)", prefix="")
+            return
+
+        # Prompt user for confirmation
+        try:
+            response = input("\n⚠️  Remove ALL dangling images (including non-Juno)? [y/N]: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            log("\n  Skipped dangling image cleanup")
+            return
+
+        if response in ['y', 'yes']:
+            log("  Removing dangling images...")
+            result = run_command(["docker", "image", "prune", "-f"], capture_output=True)
+            if result and result.returncode == 0:
+                log(f"  {result.stdout.strip()}")
+        else:
+            log("  Skipped dangling image cleanup")
 
     def clean_compose_projects(self, base_compose: Path, runtime_compose: Path) -> None:
         """Clean up using docker compose down."""
@@ -637,6 +695,12 @@ def main() -> int:
 
     log("\n--- Cleaning Compose Projects ---")
     cleaner.clean_compose_projects(base_compose, runtime_compose)
+
+    log("\n--- Cleaning Leftover Images ---")
+    cleaner.clean_leftover_images_by_pattern()
+
+    log("\n--- Dangling Images ---")
+    cleaner.clean_dangling_images()
 
     if not args.dry_run:
         log("\n✓ Cleanup complete!")
