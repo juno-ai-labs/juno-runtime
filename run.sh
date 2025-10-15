@@ -51,9 +51,6 @@ fi
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
 
-
-"$ROOT_DIR/setup-jetson.py"
-
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
 
@@ -74,9 +71,6 @@ fi
 # are either managed elsewhere or not required for the runtime environment handled here.
 runtime_services=(stt llm tts)
 
-# Bring down any existing services
-docker compose -p "$PROJECT_NAME" -f "$COMBINED_FILE" down --remove-orphans --volumes "${runtime_services[@]}"
-
 # Pull the latest versions of the runtime services we will start.
 docker compose -p "$PROJECT_NAME" -f "$COMBINED_FILE" pull --ignore-pull-failures "${runtime_services[@]}"
 
@@ -85,4 +79,4 @@ docker compose -p "$PROJECT_NAME" -f "$COMBINED_FILE" pull --ignore-pull-failure
 
 # Start the runtime services in the foreground so Ctrl-C tears them down,
 # and clean up any orphaned containers for these services.
-docker compose -p "$PROJECT_NAME" -f "$COMBINED_FILE" up --remove-orphans "${runtime_services[@]}"
+docker compose -p "$PROJECT_NAME" -f "$COMBINED_FILE" up --remove-orphans --always-recreate-dep --attach-dependencies --menu --renew-anon-volumes --timestamps "${runtime_services[@]}"
