@@ -41,6 +41,12 @@ services:
     networks: !override
       - juno-net
     container_name: juno-cli
+  message-broker:
+    build: !reset
+    image: ghcr.io/juno-ai-labs/juno-message-broker
+    networks: !override
+      - juno-net
+    container_name: juno-message-broker
   setup-ipc:
     networks: !override
       - juno-net

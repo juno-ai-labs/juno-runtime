@@ -296,6 +296,26 @@ services:
     networks:
       - helios-net
 
+  # Message Broker Service (XPUB/XSUB message broker for multi-channel pub/sub)
+  message-broker:
+    build:
+      context: .
+      dockerfile: Dockerfile-message-broker
+    container_name: helios-message-broker
+    hostname: message-broker
+    restart: unless-stopped
+    volumes:
+      - ipc_sockets:/tmp/ipc
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - PYTHONPATH=/app:/app/shared
+      - PYTHONUNBUFFERED=1
+    networks:
+      - helios-net
+    depends_on:
+      - setup-ipc
+
   # Monitor Service (containerized Python monitor)
   monitor:
     build:
