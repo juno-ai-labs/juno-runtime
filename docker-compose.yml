@@ -51,6 +51,8 @@ services:
       - PULSE_SERVER=unix:/run/user/1000/pulse/native
       - XDG_RUNTIME_DIR=/run/user/1000
       - HOME=/home/andromeda
+      # Model loading config
+      - LOCAL_MODEL_ONLY=true
     shm_size: "1gb"
     ulimits:
       memlock: -1
@@ -125,6 +127,8 @@ services:
       - PULSE_SERVER=unix:/run/user/1000/pulse/native
       - XDG_RUNTIME_DIR=/run/user/1000
       - HOME=/home/andromeda
+      # Model loading config
+      - LOCAL_MODEL_ONLY=true
     shm_size: "2gb"
     ulimits:
       memlock: -1
@@ -180,6 +184,8 @@ services:
       - NVIDIA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
+      # Model loading config
+      - LOCAL_MODEL_ONLY=true
     shm_size: "20gb"
     ulimits:
       memlock: -1
@@ -251,6 +257,8 @@ services:
       - PULSE_SERVER=unix:/run/user/1000/pulse/native
       - XDG_RUNTIME_DIR=/run/user/1000
       - HOME=/home/andromeda
+      # Model loading config
+      - LOCAL_MODEL_ONLY=true
     shm_size: "1gb"
     ulimits:
       memlock: -1
@@ -338,6 +346,8 @@ services:
       - NVIDIA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
+      # Model loading config
+      - LOCAL_MODEL_ONLY=true
     shm_size: "2gb"
     ulimits:
       memlock: -1
