@@ -411,6 +411,49 @@ services:
       - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
 
+  # Test Playback Service (validates audio setup without GPU)
+  test-playback:
+    build:
+      context: .
+      dockerfile: Dockerfile-test-playback
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-test-playback:latest
+    container_name: helios-test-playback
+    hostname: test-playback
+    restart: "no" # Don't restart automatically - run once for testing
+
+    # Audio device access
+    devices:
+      - /dev/snd:/dev/snd
+
+    # Group permissions for audio
+    group_add:
+      - audio
+
+    # Required for pulse audio
+    user: "1000:1000"
+
+    # Shared volumes with PulseAudio
+    volumes:
+      - /run/user/1000/pulse:/run/user/1000/pulse
+      - /home/andromeda/.config/pulse:/home/andromeda/.config/pulse:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+    # Environment
+    environment:
+      # System/Docker infrastructure config
+      - PYTHONPATH=/app:/app/shared
+      - PYTHONUNBUFFERED=1
+      # Pulse Audio
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - XDG_RUNTIME_DIR=/run/user/1000
+      - HOME=/home/andromeda
+
+    # Networking
+    networks:
+      - helios-net
+
 # Named volumes
 volumes:
   # IPC communication via Unix domain sockets

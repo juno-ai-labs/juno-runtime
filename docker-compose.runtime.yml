@@ -41,6 +41,12 @@ services:
     networks: !override
       - juno-net
     container_name: juno-cli
+  test-playback:
+    build: !reset
+    image: ghcr.io/juno-ai-labs/juno-test-playback
+    networks: !override
+      - juno-net
+    container_name: juno-test-playback
   message-broker:
     build: !reset
     image: ghcr.io/juno-ai-labs/juno-message-broker
