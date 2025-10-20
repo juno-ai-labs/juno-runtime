@@ -190,10 +190,11 @@ log ""
 log "Sources:"; pactl list short sources | sed 's/^/[src] /'
 log "Sinks:";   pactl list short sinks   | sed 's/^/[snk] /'
 log ""
-log "Playing test beeps through echocancel.spk..."
+log "Playing test beep through default output device..."
 # Generate a 1000Hz sine wave and play it through default (which should be echocancel.spk)
 play -n -c 1 -r "$RATE" synth "$BEEP_DURATION" sine 1000 2>/dev/null || log "WARNING: Could not play test beep (sox not available)"
 sleep 0.2
+log "Playing test beep through echocancel.spk output device..."
 # Play a second tone at 1500Hz explicitly through echocancel.spk
 PULSE_SINK=echocancel.spk play -n -c 1 -r "$RATE" synth "$BEEP_DURATION" sine 1500 2>/dev/null || true
 log "Setup complete!"
