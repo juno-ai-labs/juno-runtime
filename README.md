@@ -25,7 +25,7 @@ This will download the following services and run them in the foreground
 - `setup-echo.sh`: Sets up echo cancellation between the microphone and speaker
 - `setup-jetson.py`: Idempotent Jetson configuration script for docker group membership, power mode, and clocks.
 - `run.sh`: Shell launcher that calls `setup-jetson.py` before preparing the runtime Compose configuration and starting the foreground services.
-- `cleanup_juno.py`: Cleanup script that removes all Juno runtime Docker resources (containers, images, volumes, networks) and resets the device to pre-run.sh state. Includes `--dry-run` flag to preview actions and generates a post-cleanup report showing any leftover resources and disk usage.
+- `cleanup-run.sh`: Cleanup script that removes all Juno Docker resources (containers, images, volumes, networks).
 - `docker-compose.yml` + `docker-compose.runtime.yml`: Composed Docker Compose files
 
 ### Generated Files
