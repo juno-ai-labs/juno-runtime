@@ -464,14 +464,6 @@ volumes:
       device: tmpfs
       o: "size=100m,uid=1000,gid=1000,mode=0777"
 
-  # Persistent model cache
-  model_cache:
-    driver: local
-
-  # STT model cache (separate from LLM cache)
-  model_cache_stt:
-    driver: local
-
 # Custom network for service discovery
 networks:
   helios-net:
