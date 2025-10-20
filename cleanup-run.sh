@@ -60,14 +60,14 @@ fi
 # Remove all juno-ai-labs images
 echo "Removing juno-ai-labs images..."
 
-# Get all juno-ai-labs images (all tags, including dangling ones)
-IMAGES=$(docker images 'ghcr.io/juno-ai-labs/*' --format '{{.Repository}}:{{.Tag}}')
+# Get all juno-ai-labs images by ID (handles <none> tags correctly)
+IMAGE_IDS=$(docker images 'ghcr.io/juno-ai-labs/*' --format '{{.ID}}' | sort -u)
 
 IMAGES_REMOVED=false
-if [[ -n "$IMAGES" ]]; then
-  IMAGE_COUNT=$(echo "$IMAGES" | grep -c . || echo 0)
+if [[ -n "$IMAGE_IDS" ]]; then
+  IMAGE_COUNT=$(echo "$IMAGE_IDS" | wc -w)
   echo "Found $IMAGE_COUNT images to remove"
-  if echo "$IMAGES" | xargs docker rmi --force; then
+  if echo "$IMAGE_IDS" | xargs docker rmi --force; then
     IMAGES_REMOVED=true
   fi
 else
@@ -88,7 +88,7 @@ echo "✓ Volumes removed"
 
 if [[ "$IMAGES_REMOVED" == true ]]; then
   echo "✓ Images removed"
-elif [[ -z "$IMAGES" ]]; then
+elif [[ -z "$IMAGE_IDS" ]]; then
   echo "✓ No images needed removal"
 else
   echo "⚠ Image removal may have partially failed"
