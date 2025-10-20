@@ -6,6 +6,9 @@ BASE_COMPOSE="$ROOT_DIR/docker-compose.yml"
 RUNTIME_COMPOSE="$ROOT_DIR/docker-compose.runtime.yml"
 PROJECT_NAME="juno"
 
+DEFAULT_SERVICES=(stt llm tts message-broker)
+DEFAULT_RELEASE_TAG="latest"
+
 # Parse command line arguments
 RELEASE_TAG=""
 CUSTOM_SERVICES=()
@@ -15,15 +18,15 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: $0 [OPTIONS]"
       echo ""
       echo "Options:"
-      echo "  --release TAG          Use specific release tag (default: latest)"
-      echo "  --services FOO BAR ... Specify which services to run (default: stt llm tts message-broker)"
+      echo "  --release TAG          Use specific release tag (default: $DEFAULT_RELEASE_TAG)"
+      echo "  --services FOO BAR ... Specify which services to run (default: ${DEFAULT_SERVICES[*]})"
       echo "  --help                 Show this help message"
       echo ""
       echo "Examples:"
       echo "  $0"
       echo "  $0 --release 2025-10-20"
       echo "  $0 --services stt tts"
-      echo "  $0 --release 2025-10-20 --services llm message-broker"
+      echo "  $0 --release 2025-10-20 --services test-playback"
       exit 0
       ;;
     --release)
@@ -72,9 +75,6 @@ fi
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
 
-
-"$ROOT_DIR/setup-jetson.py"
-
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
 
@@ -85,7 +85,7 @@ if [[ -n "$RELEASE_TAG" ]]; then
   sed -i.bak -E "s|image: ghcr.io/juno-ai-labs/juno-([^:[:space:]]+)(:[^[:space:]]+)?|image: ghcr.io/juno-ai-labs/juno-\1:${RELEASE_TAG}|g" "$COMBINED_FILE"
   rm -f "${COMBINED_FILE}.bak"
 else
-  RELEASE_TAG="latest"
+  RELEASE_TAG="$DEFAULT_RELEASE_TAG"
 fi
 
 echo "Using image tag: $RELEASE_TAG"
@@ -97,7 +97,7 @@ echo "Using image tag: $RELEASE_TAG"
 if [[ ${#CUSTOM_SERVICES[@]} -gt 0 ]]; then
   runtime_services=("${CUSTOM_SERVICES[@]}")
 else
-  runtime_services=(stt llm tts message-broker)
+  runtime_services=("${DEFAULT_SERVICES[@]}")
 fi
 
 echo "Starting services: ${runtime_services[*]}"
