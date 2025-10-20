@@ -11,6 +11,21 @@ RELEASE_TAG=""
 CUSTOM_SERVICES=()
 while [[ $# -gt 0 ]]; do
   case $1 in
+    --help)
+      echo "Usage: $0 [OPTIONS]"
+      echo ""
+      echo "Options:"
+      echo "  --release TAG          Use specific release tag (default: latest)"
+      echo "  --services FOO BAR ... Specify which services to run (default: stt llm tts message-broker)"
+      echo "  --help                 Show this help message"
+      echo ""
+      echo "Examples:"
+      echo "  $0"
+      echo "  $0 --release 2025-10-20"
+      echo "  $0 --services stt tts"
+      echo "  $0 --release 2025-10-20 --services llm message-broker"
+      exit 0
+      ;;
     --release)
       if [[ -z "${2:-}" || "${2:-}" == --* ]]; then
         # Example: ./run.sh --release 2025-10-20
@@ -57,22 +72,20 @@ fi
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
 
-
-"$ROOT_DIR/setup-jetson.py"
-
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
 
 # If a release tag is specified, update image tags in the combined config
 if [[ -n "$RELEASE_TAG" ]]; then
-  echo "Using release tag: $RELEASE_TAG"
   # Replace image references to use the specified release tag
   # Handles both implicit (no tag) and explicit tags like :latest
   sed -i.bak -E "s|image: ghcr.io/juno-ai-labs/juno-([^:[:space:]]+)(:[^[:space:]]+)?|image: ghcr.io/juno-ai-labs/juno-\1:${RELEASE_TAG}|g" "$COMBINED_FILE"
   rm -f "${COMBINED_FILE}.bak"
 else
-  echo "Using default (latest) image tags"
+  RELEASE_TAG="latest"
 fi
+
+echo "Using image tag: $RELEASE_TAG"
 
 # Define the runtime services that should be pulled and started.
 # Only the stt-stream, llm, and tts services are managed by this script.
