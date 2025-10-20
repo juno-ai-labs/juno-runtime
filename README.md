@@ -36,6 +36,7 @@ This will download the following services and run them in the foreground
 The following files are automatically synced from the upstream development repository, so local changes to them may be overwritten during the synchronization process:
 
 - `run.sh`
+- `cleanup-run.sh`
 - `docker-compose.runtime.yml`
 - `docker-compose.yml`
 - `setup-echo.sh`
