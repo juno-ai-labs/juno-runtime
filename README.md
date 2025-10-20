@@ -13,6 +13,7 @@
 2. `cd juno-runtime`
 3. _(only needed once)_ `./setup-jetson.py` to apply some required settings to the Jetson **(may require a reboot)**.
 4. `./run.sh`
+5. Say "What time is it Juno" or "Hey Juno, what's the weather in San Francisco?"
 
 # Organization
 
