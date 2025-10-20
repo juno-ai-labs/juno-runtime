@@ -8,31 +8,37 @@ PROJECT_NAME="juno"
 
 # Parse command line arguments
 RELEASE_TAG=""
+CUSTOM_SERVICES=()
 while [[ $# -gt 0 ]]; do
   case $1 in
-    # Supports the--release TAG style
     --release)
       if [[ -z "${2:-}" || "${2:-}" == --* ]]; then
+        # Example: ./run.sh --release 2025-10-20
         echo "Error: --release requires a tag value" >&2
-        echo "Usage: $0 [--release TAG]" >&2
+        echo "Usage: $0 [--release TAG] [--services SERVICE...]" >&2
         exit 1
       fi
       RELEASE_TAG="$2"
       shift 2
       ;;
-    # Supports the--release=TAG style
-    --release=*)
-      RELEASE_TAG="${1#*=}"
-      if [[ -z "$RELEASE_TAG" ]]; then
-        echo "Error: --release requires a tag value" >&2
-        echo "Usage: $0 [--release TAG]" >&2
+    --services)
+      shift
+      while [[ $# -gt 0 && "$1" != --* ]]; do
+        CUSTOM_SERVICES+=("$1")
+        shift
+      done
+      if [[ ${#CUSTOM_SERVICES[@]} -eq 0 ]]; then
+        # Example: ./run.sh --services stt llm tts message-broker
+        # Example: ./run.sh --services test-playback
+        echo "Error: --services requires at least one service name" >&2
+        echo "Usage: $0 [--release TAG] [--services SERVICE...]" >&2
         exit 1
       fi
-      shift
       ;;
     *)
+      # Example: ./run.sh --services stt llm tts message-broker --release 2025-10-20
       echo "Unknown option: $1" >&2
-      echo "Usage: $0 [--release TAG]" >&2
+      echo "Usage: $0 [--release TAG] [--services SERVICE...]" >&2
       exit 1
       ;;
   esac
@@ -50,9 +56,6 @@ fi
 
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
-
-
-"$ROOT_DIR/setup-jetson.py"
 
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
@@ -72,7 +75,13 @@ fi
 # Only the stt-stream, llm, and tts services are managed by this script.
 # Other services defined in docker-compose.runtime.yml (monitor, memory, cli, stt)
 # are either managed elsewhere or not required for the runtime environment handled here.
-runtime_services=(stt llm tts message-broker)
+if [[ ${#CUSTOM_SERVICES[@]} -gt 0 ]]; then
+  runtime_services=("${CUSTOM_SERVICES[@]}")
+else
+  runtime_services=(stt llm tts message-broker)
+fi
+
+echo "Starting services: ${runtime_services[*]}"
 
 # Pull the latest versions of the runtime services we will start.
 docker compose -p "$PROJECT_NAME" -f "$COMBINED_FILE" pull --ignore-pull-failures "${runtime_services[@]}"
