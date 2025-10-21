@@ -127,6 +127,66 @@ class JetsonSetup:
             return (result.stdout or "")
         return None
 
+    def check_runtime_directory_and_pulseaudio(self) -> None:
+        """Check runtime directory ownership and PulseAudio configuration."""
+        if self.target_user == "root":
+            return  # Skip checks for root user
+
+        # Get user's UID for checking ownership
+        try:
+            import pwd
+            user_info = pwd.getpwnam(self.target_user)
+            user_uid = user_info.pw_uid
+        except (KeyError, ImportError):
+            user_uid = 1000  # Fallback to common default
+
+        runtime_dir = f"/run/user/{user_uid}"
+        pulse_socket_path = f"{runtime_dir}/pulse/native"
+
+        # Check if runtime directory exists and has correct ownership
+        if Path(runtime_dir).exists():
+            import os
+            stat_info = os.stat(runtime_dir)
+            if stat_info.st_uid != user_uid:
+                print(f"\n❌ CRITICAL ERROR: Runtime directory ownership is incorrect!")
+                print(f"   Directory: {runtime_dir}")
+                print(f"   Current owner UID: {stat_info.st_uid} (should be {user_uid})")
+                print(f"   This will break Docker container PulseAudio access.")
+                print(f"\nTo fix this issue, run:")
+                print(f"   sudo chown -R {self.target_user}:{self.target_user} {runtime_dir}")
+                print(f"   sudo systemctl restart user@{user_uid}.service")
+                print(f"\nThis likely happened because Docker containers with 'restart: unless-stopped'")
+                print(f"started before the user session was initialized after a reboot.")
+                sys.exit(1)
+
+        # Check PulseAudio is running and accessible
+        pactl_result = subprocess.run(
+            ["pactl", "info"],
+            capture_output=True,
+            text=True
+        )
+
+        if pactl_result.returncode != 0:
+            print(f"\n⚠️  WARNING: PulseAudio is not accessible")
+            print(f"   Error: {pactl_result.stderr.strip() if pactl_result.stderr else 'Unknown error'}")
+            print(f"   Docker containers may have audio issues.")
+        else:
+            # Check if PulseAudio socket is at the expected location for Docker
+            server_string = None
+            for line in pactl_result.stdout.splitlines():
+                if line.startswith("Server String:"):
+                    server_string = line.split(":", 1)[1].strip()
+                    break
+
+            if server_string and pulse_socket_path not in server_string:
+                print(f"\n⚠️  WARNING: PulseAudio socket is not at the expected location for Docker")
+                print(f"   Current location: {server_string}")
+                print(f"   Expected by Docker: unix:{pulse_socket_path}")
+                print(f"   Docker containers may fail to connect to PulseAudio.")
+                print(f"\nTo fix this, you can:")
+                print(f"   1. Restart your session (logout/login)")
+                print(f"   2. Or configure PulseAudio to use the expected location")
+
     def ensure_docker_group_membership(self) -> None:
         """Add the target user to the docker group when necessary."""
         if self.target_user == "root":
@@ -362,6 +422,9 @@ WantedBy=multi-user.target
         print("=== Jetson Setup Script ===")
         print(f"Target user: {self.target_user}")
         print(f"Desired power mode: {self.power_mode}")
+
+        # Check critical runtime environment before proceeding
+        self.check_runtime_directory_and_pulseaudio()
 
         self.ensure_docker_group_membership()
         self.ensure_jetson_clocks_service()
