@@ -13,7 +13,7 @@ services:
         - ghcr.io/juno-ai-labs/juno-stt:latest
     container_name: helios-stt
     hostname: stt
-    restart: unless-stopped
+    restart: on-failure:3 # Restart on crash, max 3 times
 
     # GPU access for CUDA acceleration
     runtime: nvidia
@@ -89,7 +89,7 @@ services:
         - ghcr.io/juno-ai-labs/juno-stt-stream:latest
     container_name: helios-stt-stream
     hostname: stt-stream
-    restart: unless-stopped
+    restart: on-failure:3 # Restart on crash, max 3 times
 
     # GPU access for CUDA acceleration
     runtime: nvidia
@@ -165,7 +165,7 @@ services:
         - ghcr.io/juno-ai-labs/juno-llm:latest
     container_name: helios-llm
     hostname: llm
-    restart: unless-stopped
+    restart: on-failure:3 # Restart on crash, max 3 times
 
     # GPU access
     runtime: nvidia
@@ -221,7 +221,7 @@ services:
         - ghcr.io/juno-ai-labs/juno-tts:latest
     container_name: helios-tts
     hostname: tts
-    restart: unless-stopped
+    restart: on-failure:3 # Restart on crash, max 3 times
 
     # GPU access for CUDA acceleration
     runtime: nvidia
@@ -303,7 +303,7 @@ services:
       dockerfile: Dockerfile-message-broker
     container_name: helios-message-broker
     hostname: message-broker
-    restart: unless-stopped
+    restart: on-failure:3 # Restart on crash, max 3 times
     volumes:
       - ipc_sockets:/tmp/ipc
       - /etc/timezone:/etc/timezone:ro
@@ -323,7 +323,7 @@ services:
       dockerfile: Dockerfile-monitor
     container_name: helios-monitor
     hostname: monitor
-    restart: unless-stopped
+    restart: on-failure:3 # Restart on crash, max 3 times
     volumes:
       - ipc_sockets:/tmp/ipc
       - /etc/timezone:/etc/timezone:ro
@@ -347,7 +347,7 @@ services:
         - ghcr.io/juno-ai-labs/juno-memory:latest
     container_name: helios-memory
     hostname: memory
-    restart: unless-stopped
+    restart: on-failure:3 # Restart on crash, max 3 times
 
     # GPU access
     runtime: nvidia
