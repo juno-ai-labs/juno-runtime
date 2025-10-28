@@ -3,9 +3,33 @@ set -euo pipefail
 
 log(){ echo "[setup-echo] $*"; }
 
-# Find audio devices dynamically instead of hardcoding serial numbers
-# Search patterns for common speakerphone devices
-SEARCH_PATTERNS=("ANKER" "PowerConf" "S330")
+# Parse arguments
+QUIET=false
+for arg in "$@"; do
+  case "$arg" in
+    --quiet|-q)
+      QUIET=true
+      shift
+      ;;
+    --help|-h)
+      echo "Usage: $0 [OPTIONS]"
+      echo "Setup echo cancellation for USB audio devices on Jetson"
+      echo ""
+      echo "Options:"
+      echo "  --quiet, -q    Skip test beeps"
+      echo "  --help, -h     Show this help message"
+      exit 0
+      ;;
+    *)
+      log "ERROR: Unknown option: $arg"
+      log "Use --help for usage information"
+      exit 1
+      ;;
+  esac
+done
+
+# Find audio devices dynamically - will detect any USB audio device
+# We filter out Jetson's internal APE devices automatically
 
 # Test beep duration in seconds
 BEEP_DURATION=0.25
@@ -19,7 +43,6 @@ fi
 
 find_device() {
   local device_type="$1"  # "sources" or "sinks"
-  local search_patterns=("${@:2}")
 
   # Get list of devices
   local devices
@@ -33,32 +56,31 @@ find_device() {
     devices=$(grep -v '.monitor' <<< "$devices")
   fi
 
-  # Try each search pattern
-  for pattern in "${search_patterns[@]}"; do
-    local match
+  # Filter out Jetson APE devices (internal audio interfaces)
+  # These typically contain "APE", "tegra", "NVIDIA_Jetson", or "XBAR" in their names
+  local filtered
+  filtered=$(grep -viE '(APE|tegra|NVIDIA.*Jetson|XBAR|ADMAIF)' <<< "$devices") || filtered=""
 
-    # Use word boundaries to avoid matching substrings like "BANKER" when looking for "ANKER"
-    # First try: match with analog-stereo filter
-    local filtered
-    filtered=$(grep -iE "(^|[^a-zA-Z])$pattern([^a-zA-Z]|$)" <<< "$devices") || filtered=""
-    local analog
-    analog=$(grep -i "analog-stereo" <<< "$filtered") || analog=""
-    local first_line
-    first_line=$(head -n1 <<< "$analog") || first_line=""
-    match=$(awk '{print $2}' <<< "$first_line") || match=""
+  if [[ -z "$filtered" ]]; then
+    log "ERROR: No external audio devices found after filtering out internal devices"
+    return 1
+  fi
 
-    # Second try: match without analog-stereo filter if first attempt failed
-    if [[ -z "$match" ]]; then
-      filtered=$(grep -iE "(^|[^a-zA-Z])$pattern([^a-zA-Z]|$)" <<< "$devices") || filtered=""
-      first_line=$(head -n1 <<< "$filtered") || first_line=""
-      match=$(awk '{print $2}' <<< "$first_line") || match=""
-    fi
+  # Prefer analog-stereo devices first (better compatibility)
+  local match
+  local analog
+  analog=$(grep -i "analog-stereo" <<< "$filtered") || analog=""
+  if [[ -n "$analog" ]]; then
+    match=$(head -n1 <<< "$analog" | awk '{print $2}')
+  else
+    # Fall back to first available device
+    match=$(head -n1 <<< "$filtered" | awk '{print $2}')
+  fi
 
-    if [[ -n "$match" ]]; then
-      echo "$match"
-      return 0
-    fi
-  done
+  if [[ -n "$match" ]]; then
+    echo "$match"
+    return 0
+  fi
 
   return 1
 }
@@ -82,21 +104,21 @@ get_device_rate() {
 }
 
 # Find source (microphone input)
-log "Searching for audio input device..."
-SRC=$(find_device "sources" "${SEARCH_PATTERNS[@]}") || {
-  log "ERROR: No matching audio input device found!"
-  log "Available sources (excluding monitors):"
-  pactl list short sources | grep -v '.monitor' | sed 's/^/  /'
+log "Searching for USB audio input device..."
+SRC=$(find_device "sources") || {
+  log "ERROR: No USB audio input device found!"
+  log "Available sources (excluding monitors and internal devices):"
+  pactl list short sources | grep -v '.monitor' | grep -viE '(APE|tegra|NVIDIA.*Jetson|XBAR|ADMAIF)' | sed 's/^/  /'
   exit 1
 }
 log "Found input device: $SRC"
 
 # Find sink (speaker output)
-log "Searching for audio output device..."
-SNK=$(find_device "sinks" "${SEARCH_PATTERNS[@]}") || {
-  log "ERROR: No matching audio output device found!"
-  log "Available sinks:"
-  pactl list short sinks | sed 's/^/  /'
+log "Searching for USB audio output device..."
+SNK=$(find_device "sinks") || {
+  log "ERROR: No USB audio output device found!"
+  log "Available sinks (excluding internal devices):"
+  pactl list short sinks | grep -viE '(APE|tegra|NVIDIA.*Jetson|XBAR|ADMAIF)' | sed 's/^/  /'
   exit 1
 }
 log "Found output device: $SNK"
@@ -190,12 +212,18 @@ log ""
 log "Sources:"; pactl list short sources | sed 's/^/[src] /'
 log "Sinks:";   pactl list short sinks   | sed 's/^/[snk] /'
 log ""
-log "Playing test beep through default output device..."
-# Generate a 1000Hz sine wave and play it through default (which should be echocancel.spk)
-play -n -c 1 -r "$RATE" synth "$BEEP_DURATION" sine 1000 2>/dev/null || log "WARNING: Could not play test beep (sox not available)"
-sleep 0.2
-log "Playing test beep through echocancel.spk output device..."
-# Play a second tone at 1500Hz explicitly through echocancel.spk
-PULSE_SINK=echocancel.spk play -n -c 1 -r "$RATE" synth "$BEEP_DURATION" sine 1500 2>/dev/null || true
+
+if [[ "$QUIET" == "false" ]]; then
+  log "Playing test beep through default output device..."
+  # Generate a 1000Hz sine wave and play it through default (which should be echocancel.spk)
+  play -n -c 1 -r "$RATE" synth "$BEEP_DURATION" sine 1000 2>/dev/null || log "WARNING: Could not play test beep (sox not available)"
+  sleep 0.2
+  log "Playing test beep through echocancel.spk output device..."
+  # Play a second tone at 1500Hz explicitly through echocancel.spk
+  PULSE_SINK=echocancel.spk play -n -c 1 -r "$RATE" synth "$BEEP_DURATION" sine 1500 2>/dev/null || true
+else
+  log "Skipping test beeps (--quiet mode)"
+fi
+
 log "Setup complete!"
 
