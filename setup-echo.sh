@@ -57,9 +57,9 @@ find_device() {
   fi
 
   # Filter out Jetson APE devices (internal audio interfaces)
-  # These typically contain "APE", "tegra", "NVIDIA_Jetson", or "XBAR" in their names
+  # These typically contain "APE", "tegra", "NVIDIA_Jetson", "XBAR", or "platform-sound" in their names
   local filtered
-  filtered=$(grep -viE '(APE|tegra|NVIDIA.*Jetson|XBAR|ADMAIF)' <<< "$devices") || filtered=""
+  filtered=$(grep -viE '(APE|tegra|NVIDIA.*Jetson|XBAR|ADMAIF|platform-sound)' <<< "$devices") || filtered=""
 
   if [[ -z "$filtered" ]]; then
     log "ERROR: No external audio devices found after filtering out internal devices"
@@ -108,7 +108,7 @@ log "Searching for USB audio input device..."
 SRC=$(find_device "sources") || {
   log "ERROR: No USB audio input device found!"
   log "Available sources (excluding monitors and internal devices):"
-  pactl list short sources | grep -v '.monitor' | grep -viE '(APE|tegra|NVIDIA.*Jetson|XBAR|ADMAIF)' | sed 's/^/  /'
+  pactl list short sources | grep -v '.monitor' | grep -viE '(APE|tegra|NVIDIA.*Jetson|XBAR|ADMAIF|platform-sound)' | sed 's/^/  /'
   exit 1
 }
 log "Found input device: $SRC"
@@ -118,7 +118,7 @@ log "Searching for USB audio output device..."
 SNK=$(find_device "sinks") || {
   log "ERROR: No USB audio output device found!"
   log "Available sinks (excluding internal devices):"
-  pactl list short sinks | grep -viE '(APE|tegra|NVIDIA.*Jetson|XBAR|ADMAIF)' | sed 's/^/  /'
+  pactl list short sinks | grep -viE '(APE|tegra|NVIDIA.*Jetson|XBAR|ADMAIF|platform-sound)' | sed 's/^/  /'
   exit 1
 }
 log "Found output device: $SNK"

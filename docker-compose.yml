@@ -151,6 +151,79 @@ services:
     depends_on:
       - setup-ipc
 
+  # Speech-to-Text Stream Service - Rust Implementation (Moshi with VAD)
+  stt-stream-rust:
+    build:
+      context: ./stt-stream-rust
+      dockerfile: ../Dockerfile-stt-stream-rust
+      args:
+        - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-stt-stream-rust:latest
+    container_name: helios-stt-stream-rust
+    hostname: stt-stream-rust
+    restart: on-failure:3 # Restart on crash, max 3 times
+
+    # GPU access for CUDA acceleration
+    runtime: nvidia
+
+    # Audio device access
+    devices:
+      - /dev/snd:/dev/snd
+
+    # Group permissions for audio
+    group_add:
+      - audio
+
+    # Required for pulse audio
+    user: "1000:1000"
+
+    # Shared volumes with IPC
+    volumes:
+      - ipc_sockets:/tmp/ipc
+      - /run/user/1000/pulse:/run/user/1000/pulse
+      - /home/andromeda/.config/pulse:/home/andromeda/.config/pulse:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+    # Environment
+    environment:
+      # NVIDIA/CUDA
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      # Pulse Audio
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - XDG_RUNTIME_DIR=/run/user/1000
+      - HOME=/home/andromeda
+      # Rust
+      - RUST_LOG=info
+      - RUST_BACKTRACE=1
+      # Model loading config
+      - LOCAL_MODEL_ONLY=true
+    shm_size: "2gb"
+    ulimits:
+      memlock: -1
+      stack: 67108864
+
+    # Resource limits - allow GPU access for STT
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    # Networking
+    networks:
+      - helios-net
+
+    # Depends on IPC setup
+    depends_on:
+      - setup-ipc
+
   # Large Language Model Service
   llm:
     build:
