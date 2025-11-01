@@ -73,7 +73,10 @@ services:
 
     # Depends on shared volume being ready
     depends_on:
-      - setup-ipc
+      setup-ipc:
+        condition: service_completed_successfully
+      message-broker:
+        condition: service_healthy
 
   # Speech-to-Text Stream Service (Kyutai STT-1B)
   stt-stream:
@@ -149,7 +152,10 @@ services:
 
     # Depends on IPC setup
     depends_on:
-      - setup-ipc
+      setup-ipc:
+        condition: service_completed_successfully
+      message-broker:
+        condition: service_healthy
 
   # Speech-to-Text Stream Service - Rust Implementation (Moshi with VAD)
   stt-stream-rust:
@@ -222,7 +228,10 @@ services:
 
     # Depends on IPC setup
     depends_on:
-      - setup-ipc
+      setup-ipc:
+        condition: service_completed_successfully
+      message-broker:
+        condition: service_healthy
 
   # Large Language Model Service
   llm:
@@ -279,7 +288,10 @@ services:
 
     # Depends on IPC setup
     depends_on:
-      - setup-ipc
+      setup-ipc:
+        condition: service_completed_successfully
+      message-broker:
+        condition: service_healthy
 
   # Text-to-Speech Service
   tts:
@@ -352,7 +364,10 @@ services:
 
     # Depends on IPC setup
     depends_on:
-      - setup-ipc
+      setup-ipc:
+        condition: service_completed_successfully
+      message-broker:
+        condition: service_healthy
 
   # IPC Setup Service (ensures socket directory exists with proper permissions)
   setup-ipc:
@@ -387,7 +402,8 @@ services:
     networks:
       - helios-net
     depends_on:
-      - setup-ipc
+      setup-ipc:
+        condition: service_completed_successfully
 
   # Monitor Service (containerized Python monitor)
   monitor:
@@ -404,7 +420,10 @@ services:
     networks:
       - helios-net
     depends_on:
-      - setup-ipc
+      setup-ipc:
+        condition: service_completed_successfully
+      message-broker:
+        condition: service_healthy
 
   # Memory Service (stores and retrieves household memories)
   memory:
@@ -461,7 +480,10 @@ services:
 
     # Depends on IPC setup
     depends_on:
-      - setup-ipc
+      setup-ipc:
+        condition: service_completed_successfully
+      message-broker:
+        condition: service_healthy
 
   # CLI Client Service (command line interface for single prompts)
   cli:
@@ -478,7 +500,10 @@ services:
     networks:
       - helios-net
     depends_on:
-      - setup-ipc
+      setup-ipc:
+        condition: service_completed_successfully
+      message-broker:
+        condition: service_healthy
     environment:
       # System/Docker infrastructure config (overrides .env file defaults)
       - PYTHONPATH=/app:/app/shared
