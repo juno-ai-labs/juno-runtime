@@ -65,7 +65,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
 
     # Networking
     networks:
@@ -144,7 +144,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
 
     # Networking
     networks:
@@ -220,7 +220,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
 
     # Networking
     networks:
@@ -280,7 +280,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
 
     # Networking
     networks:
@@ -292,6 +292,96 @@ services:
         condition: service_completed_successfully
       message-broker:
         condition: service_healthy
+
+  # Gemma 3 4B llama.cpp HTTP server
+  llm-gemma3-4b:
+    build:
+      context: .
+      dockerfile: Dockerfile-llm-gemma3-4b
+      args:
+        - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
+        - PYTHON_VERSION=310
+        - LLAMA_CPP_RELEASE_TAG=b4062
+        - GEMMA_MODEL_QUANT=Q4_K_M
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-llm-gemma3-4b:latest
+    container_name: helios-llm-gemma3-4b
+    hostname: llm-gemma3-4b
+    restart: on-failure:3
+
+    runtime: nvidia
+
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      - LLAMA_SERVER_PORT=8080
+    ports:
+      - "8200:8080"
+
+    # Resource limits
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+    networks:
+      - helios-net
+
+    depends_on:
+      setup-ipc:
+        condition: service_completed_successfully
+
+  # Embedding Gemma 300M llama.cpp server
+  llm-embedding:
+    build:
+      context: .
+      dockerfile: Dockerfile-llm-embedding
+      args:
+        - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
+        - PYTHON_VERSION=310
+        - LLAMA_CPP_RELEASE_TAG=b4062
+        - EMBEDDING_MODEL_QUANT=embeddinggemma-300m-qat-q8_0.gguf
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-llm-embedding:latest
+    container_name: helios-llm-embedding
+    hostname: llm-embedding
+    restart: on-failure:3
+
+    runtime: nvidia
+
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      - SERVICE_NAME=llm-embedding
+      - LLAMA_MODEL_PATH=/models/embedding-gemma/embeddinggemma-300m-qat-q8_0.gguf
+      - LLAMA_MODEL_ALIAS=embedding-gemma-300m
+      - LLAMA_SERVER_PORT=8080
+      - LLAMA_SERVER_ARGS=--embeddings
+    ports:
+      - "8202:8080"
+
+    # Resource limits
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+    networks:
+      - helios-net
+
+    depends_on:
+      setup-ipc:
+        condition: service_completed_successfully
 
   # Text-to-Speech Service
   tts:
@@ -356,7 +446,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
 
     # Networking
     networks:
@@ -485,6 +575,53 @@ services:
       message-broker:
         condition: service_healthy
 
+  # Memory File Service (filesystem-based memory persistence)
+  memory-file:
+    build:
+      context: .
+      dockerfile: Dockerfile-memory-file
+      args:
+        - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
+        - PYTHON_VERSION=310
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-memory-file:latest
+    container_name: helios-memory-file
+    hostname: memory-file
+    restart: on-failure:3 # Restart on crash, max 3 times
+
+    # Shared IPC volume for ZeroMQ
+    volumes:
+      - ipc_sockets:/tmp/ipc
+      - memory_data:/data/memory
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+    # Environment
+    environment:
+      - PYTHONPATH=/app:/app/shared
+      - PYTHONUNBUFFERED=1
+      - FILTER_SERVER_URL=http://llm-gemma3-4b:8080  # internal port
+      - FILTER_MODEL_ALIAS=gemma3-4b-it
+      - EMBEDDING_SERVER_URL=http://llm-embedding:8080  # internal port
+      - EMBEDDING_MODEL_ALIAS=embedding-gemma-300m
+      - TRANSCRIPT_DEBOUNCE_SECONDS=60
+      - REWRITE_INTERVAL_SECONDS=3600
+      - REWRITE_WINDOW_DAYS=7
+
+    # Networking
+    networks:
+      - helios-net
+
+    depends_on:
+      setup-ipc:
+        condition: service_completed_successfully
+      message-broker:
+        condition: service_healthy
+      llm-gemma3-4b:
+        condition: service_started
+      llm-embedding:
+        condition: service_started
+
   # CLI Client Service (command line interface for single prompts)
   cli:
     build:
@@ -561,6 +698,8 @@ volumes:
       type: tmpfs
       device: tmpfs
       o: "size=100m,uid=1000,gid=1000,mode=0777"
+  memory_data:
+    driver: local
 
 # Custom network for service discovery
 networks:
