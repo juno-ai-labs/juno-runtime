@@ -299,7 +299,7 @@ services:
         - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
         - PYTHON_VERSION=310
         - LLAMA_CPP_RELEASE_TAG=b6937
-        - HF_REPO=google/gemma-3-4b-it-GGUF:q4_k_m
+        - HF_REPO=ggml-org/gemma-3-4b-it-GGUF:q4_k_m
       cache_from:
         - ghcr.io/juno-ai-labs/juno-llm-gemma3-4b:latest
     container_name: helios-llm-gemma3-4b
