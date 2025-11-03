@@ -40,7 +40,6 @@ services:
     # Environment
     environment:
       # System/Docker infrastructure config (overrides .env file defaults)
-      - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
       - NVIDIA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
@@ -119,7 +118,6 @@ services:
     # Environment
     environment:
       # System/Docker infrastructure config (overrides .env file defaults)
-      - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
       - NVIDIA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
@@ -261,7 +259,6 @@ services:
     # Environment
     environment:
       # System/Docker infrastructure config (overrides .env file defaults)
-      - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
       - NVIDIA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
@@ -430,7 +427,6 @@ services:
     # Environment
     environment:
       # System/Docker infrastructure config (overrides .env file defaults)
-      - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
       - NVIDIA_VISIBLE_DEVICES=0
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
@@ -494,7 +490,6 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     environment:
-      - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
     networks:
       - helios-net
@@ -545,7 +540,6 @@ services:
 
     # Environment
     environment:
-      - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
       - FILTER_SERVER_URL=http://llm-gemma3-4b:8080 # internal port
       - EMBEDDING_SERVER_URL=http://llm-embedding:8080 # internal port
@@ -588,7 +582,6 @@ services:
         condition: service_healthy
     environment:
       # System/Docker infrastructure config (overrides .env file defaults)
-      - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
 
   # Test Playback Service (validates audio setup without GPU)
@@ -623,7 +616,6 @@ services:
     # Environment
     environment:
       # System/Docker infrastructure config
-      - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
       # Pulse Audio
       - PULSE_SERVER=unix:/run/user/1000/pulse/native
