@@ -300,7 +300,7 @@ services:
         - PYTHON_VERSION=310
         - LLAMA_CPP_RELEASE_TAG=b6937
         - HF_REPO=ggml-org/gemma-3-4b-it-GGUF
-        - HF_QUANTIZATION=q4_k_m
+        - HF_QUANTIZATION=Q4_K_M
       cache_from:
         - ghcr.io/juno-ai-labs/juno-llm-gemma3-4b:latest
     container_name: helios-llm-gemma3-4b
@@ -349,7 +349,7 @@ services:
         - PYTHON_VERSION=310
         - LLAMA_CPP_RELEASE_TAG=b6937
         - HF_REPO=ggml-org/embeddinggemma-300m-qat-q8_0-GGUF
-        - HF_QUANTIZATION=q8_0
+        - HF_QUANTIZATION=Q8_0
       cache_from:
         - ghcr.io/juno-ai-labs/juno-llm-embedding:latest
     container_name: helios-llm-embedding
