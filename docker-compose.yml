@@ -301,7 +301,7 @@ services:
       args:
         - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
         - PYTHON_VERSION=310
-        - LLAMA_CPP_RELEASE_TAG=b4062
+        - LLAMA_CPP_RELEASE_TAG=b6937
         - GEMMA_MODEL_QUANT=Q4_K_M
       cache_from:
         - ghcr.io/juno-ai-labs/juno-llm-gemma3-4b:latest
@@ -345,7 +345,7 @@ services:
       args:
         - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
         - PYTHON_VERSION=310
-        - LLAMA_CPP_RELEASE_TAG=b4062
+        - LLAMA_CPP_RELEASE_TAG=b6937
         - EMBEDDING_MODEL_QUANT=embeddinggemma-300m-qat-q8_0.gguf
       cache_from:
         - ghcr.io/juno-ai-labs/juno-llm-embedding:latest
