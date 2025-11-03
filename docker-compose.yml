@@ -299,7 +299,8 @@ services:
         - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
         - PYTHON_VERSION=310
         - LLAMA_CPP_RELEASE_TAG=b6937
-        - HF_REPO=ggml-org/gemma-3-4b-it-GGUF:q4_k_m
+        - HF_REPO=ggml-org/gemma-3-4b-it-GGUF
+        - HF_QUANTIZATION=q4_k_m
       cache_from:
         - ghcr.io/juno-ai-labs/juno-llm-gemma3-4b:latest
     container_name: helios-llm-gemma3-4b
@@ -347,7 +348,8 @@ services:
         - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
         - PYTHON_VERSION=310
         - LLAMA_CPP_RELEASE_TAG=b6937
-        - HF_REPO=ggml-org/embeddinggemma-300m-qat-q8_0-GGUF:q8_0
+        - HF_REPO=ggml-org/embeddinggemma-300m-qat-q8_0-GGUF
+        - HF_QUANTIZATION=q8_0
       cache_from:
         - ghcr.io/juno-ai-labs/juno-llm-embedding:latest
     container_name: helios-llm-embedding
