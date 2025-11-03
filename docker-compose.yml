@@ -297,12 +297,12 @@ services:
   llm-gemma3-4b:
     build:
       context: .
-      dockerfile: Dockerfile-llm-gemma3-4b
+      dockerfile: Dockerfile-llama-cpp-server
       args:
         - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
         - PYTHON_VERSION=310
         - LLAMA_CPP_RELEASE_TAG=b6937
-        - GEMMA_MODEL_QUANT=Q4_K_M
+        - HF_REPO=google/gemma-3-4b-it-GGUF:q4_k_m
       cache_from:
         - ghcr.io/juno-ai-labs/juno-llm-gemma3-4b:latest
     container_name: helios-llm-gemma3-4b
@@ -316,8 +316,12 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - CUDA_VISIBLE_DEVICES=0
       - CUDA_DEVICE_ORDER=PCI_BUS_ID
-      - LLAMA_SERVER_PORT=8080
       - SERVICE_NAME=llm-gemma3-4b
+      - LLAMA_TEMPERATURE=1.0
+      - LLAMA_TOP_K=64
+      - LLAMA_TOP_P=0.95
+      - LLAMA_MIN_P=0.01
+      - LLAMA_REPEAT_PENALTY=1.0
     ports:
       - "8200:8080"
 
@@ -341,12 +345,12 @@ services:
   llm-embedding:
     build:
       context: .
-      dockerfile: Dockerfile-llm-embedding
+      dockerfile: Dockerfile-llama-cpp-server
       args:
         - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
         - PYTHON_VERSION=310
         - LLAMA_CPP_RELEASE_TAG=b6937
-        - EMBEDDING_MODEL_QUANT=embeddinggemma-300m-qat-q8_0.gguf
+        - HF_REPO=ggml-org/embeddinggemma-300m-qat-q8_0-GGUF:q8_0
       cache_from:
         - ghcr.io/juno-ai-labs/juno-llm-embedding:latest
     container_name: helios-llm-embedding
@@ -361,9 +365,11 @@ services:
       - CUDA_VISIBLE_DEVICES=0
       - CUDA_DEVICE_ORDER=PCI_BUS_ID
       - SERVICE_NAME=llm-embedding
-      - LLAMA_MODEL_PATH=/models/embedding-gemma/embeddinggemma-300m-qat-q8_0.gguf
-      - LLAMA_MODEL_ALIAS=embedding-gemma-300m
-      - LLAMA_SERVER_PORT=8080
+      - LLAMA_TEMPERATURE=1.0
+      - LLAMA_TOP_K=64
+      - LLAMA_TOP_P=0.95
+      - LLAMA_MIN_P=0.01
+      - LLAMA_REPEAT_PENALTY=1.0
       - LLAMA_SERVER_ARGS=--embeddings
     ports:
       - "8202:8080"
@@ -542,9 +548,7 @@ services:
       - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
       - FILTER_SERVER_URL=http://llm-gemma3-4b:8080 # internal port
-      - FILTER_MODEL_ALIAS=gemma3-4b-it
       - EMBEDDING_SERVER_URL=http://llm-embedding:8080 # internal port
-      - EMBEDDING_MODEL_ALIAS=embedding-gemma-300m
       - TRANSCRIPT_DEBOUNCE_SECONDS=60
       - REWRITE_INTERVAL_SECONDS=3600
       - REWRITE_WINDOW_DAYS=7
