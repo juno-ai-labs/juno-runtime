@@ -317,6 +317,7 @@ services:
       - CUDA_VISIBLE_DEVICES=0
       - CUDA_DEVICE_ORDER=PCI_BUS_ID
       - LLAMA_SERVER_PORT=8080
+      - SERVICE_NAME=llm-gemma3-4b
     ports:
       - "8200:8080"
 
@@ -515,7 +516,7 @@ services:
       message-broker:
         condition: service_healthy
 
-  # Memory Service (stores and retrieves household memories)
+  # Memory Service (filesystem-based memory persistence)
   memory:
     build:
       context: .
@@ -523,70 +524,10 @@ services:
       args:
         - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
         - PYTHON_VERSION=310
-        - PYTORCH_VERSION=2.8.0
-        - LLAMA_CPP_PYTHON_VERSION=0.3.16
       cache_from:
         - ghcr.io/juno-ai-labs/juno-memory:latest
     container_name: helios-memory
     hostname: memory
-    restart: on-failure:3 # Restart on crash, max 3 times
-
-    # GPU access
-    runtime: nvidia
-
-    # IPC volumes
-    volumes:
-      - ipc_sockets:/tmp/ipc
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-
-    # Environment
-    environment:
-      # System/Docker infrastructure config (overrides .env file defaults)
-      - PYTHONPATH=/app:/app/shared
-      - PYTHONUNBUFFERED=1
-      - NVIDIA_VISIBLE_DEVICES=0
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - CUDA_VISIBLE_DEVICES=0
-      # Model loading config
-      - LOCAL_MODEL_ONLY=true
-    shm_size: "2gb"
-    ulimits:
-      memlock: -1
-      stack: 67108864
-
-    # Resource limits - share GPU with other services
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-
-    # Networking
-    networks:
-      - helios-net
-
-    # Depends on IPC setup
-    depends_on:
-      setup-ipc:
-        condition: service_completed_successfully
-      message-broker:
-        condition: service_healthy
-
-  # Memory File Service (filesystem-based memory persistence)
-  memory-file:
-    build:
-      context: .
-      dockerfile: Dockerfile-memory-file
-      args:
-        - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
-        - PYTHON_VERSION=310
-      cache_from:
-        - ghcr.io/juno-ai-labs/juno-memory-file:latest
-    container_name: helios-memory-file
-    hostname: memory-file
     restart: on-failure:3 # Restart on crash, max 3 times
 
     # Shared IPC volume for ZeroMQ
@@ -600,9 +541,9 @@ services:
     environment:
       - PYTHONPATH=/app:/app/shared
       - PYTHONUNBUFFERED=1
-      - FILTER_SERVER_URL=http://llm-gemma3-4b:8080  # internal port
+      - FILTER_SERVER_URL=http://llm-gemma3-4b:8080 # internal port
       - FILTER_MODEL_ALIAS=gemma3-4b-it
-      - EMBEDDING_SERVER_URL=http://llm-embedding:8080  # internal port
+      - EMBEDDING_SERVER_URL=http://llm-embedding:8080 # internal port
       - EMBEDDING_MODEL_ALIAS=embedding-gemma-300m
       - TRANSCRIPT_DEBOUNCE_SECONDS=60
       - REWRITE_INTERVAL_SECONDS=3600
