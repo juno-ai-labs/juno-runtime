@@ -258,9 +258,6 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
 
-    env_file:
-      - audio_manager/.env
-
     environment:
       - PYTHONUNBUFFERED=1
       - PULSE_SERVER=unix:/run/user/1000/pulse/native
