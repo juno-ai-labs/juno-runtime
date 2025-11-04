@@ -41,6 +41,12 @@ services:
     networks: !override
       - juno-net
     container_name: juno-llm-gemma3-4b
+  llm-qwen3-4b:
+    build: !reset
+    image: ghcr.io/juno-ai-labs/juno-llm-qwen3-4b
+    networks: !override
+      - juno-net
+    container_name: juno-llm-qwen3-4b
   llm-embedding:
     build: !reset
     image: ghcr.io/juno-ai-labs/juno-llm-embedding
@@ -53,18 +59,6 @@ services:
     networks: !override
       - juno-net
     container_name: juno-memory
-  llm-gemma3-4b:
-    build: !reset
-    image: ghcr.io/juno-ai-labs/juno-llm-gemma3-4b
-    networks: !override
-      - juno-net
-    container_name: juno-llm-gemma3-4b
-  llm-embedding:
-    build: !reset
-    image: ghcr.io/juno-ai-labs/juno-llm-embedding
-    networks: !override
-      - juno-net
-    container_name: juno-llm-embedding
   cli:
     build: !reset
     image: ghcr.io/juno-ai-labs/juno-cli
