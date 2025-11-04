@@ -230,6 +230,51 @@ services:
         condition: service_completed_successfully
       message-broker:
         condition: service_healthy
+      audio-manager:
+        condition: service_started
+
+  audio-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile-audio-manager
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-audio-manager:latest
+    container_name: helios-audio-manager
+    hostname: audio-manager
+    restart: on-failure:3
+
+    devices:
+      - /dev/snd:/dev/snd
+
+    group_add:
+      - audio
+
+    user: "1000:1000"
+
+    volumes:
+      - ipc_sockets:/tmp/ipc
+      - /run/user/1000/pulse:/run/user/1000/pulse
+      - /home/andromeda/.config/pulse:/home/andromeda/.config/pulse:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+    env_file:
+      - audio_manager/.env
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - XDG_RUNTIME_DIR=/run/user/1000
+      - HOME=/home/andromeda
+
+    networks:
+      - helios-net
+
+    depends_on:
+      setup-ipc:
+        condition: service_completed_successfully
+      message-broker:
+        condition: service_healthy
 
   # Large Language Model Service
   llm:
@@ -506,6 +551,8 @@ services:
         condition: service_completed_successfully
       message-broker:
         condition: service_healthy
+      audio-manager:
+        condition: service_started
 
   # IPC Setup Service (ensures socket directory exists with proper permissions)
   setup-ipc:

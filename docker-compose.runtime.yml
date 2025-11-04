@@ -17,6 +17,12 @@ services:
     networks: !override
       - juno-net
     container_name: juno-stt-stream-rust
+  audio-manager:
+    build: !reset
+    image: ghcr.io/juno-ai-labs/juno-audio-manager
+    networks: !override
+      - juno-net
+    container_name: juno-audio-manager
   llm:
     build: !reset
     image: ghcr.io/juno-ai-labs/juno-llm

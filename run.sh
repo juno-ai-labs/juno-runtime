@@ -6,7 +6,7 @@ BASE_COMPOSE="$ROOT_DIR/docker-compose.yml"
 RUNTIME_COMPOSE="$ROOT_DIR/docker-compose.runtime.yml"
 PROJECT_NAME="juno"
 
-DEFAULT_SERVICES=(stt-stream-rust llm memory tts message-broker monitor llm-qwen3-4b llm-gemma3-4b llm-embedding)
+DEFAULT_SERVICES=(audio-manager stt-stream-rust llm memory tts message-broker monitor llm-qwen3-4b llm-gemma3-4b llm-embedding)
 DEFAULT_RELEASE_TAG="latest"
 
 # Parse command line arguments
@@ -75,9 +75,6 @@ fi
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
 
-
-"$ROOT_DIR/setup-jetson.py"
-
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
 
@@ -94,7 +91,7 @@ fi
 echo "Using image tag: $RELEASE_TAG"
 
 # Define the runtime services that should be pulled and started.
-# Only the stt-stream, llm, and tts services are managed by this script.
+# Only the audio-manager, stt-stream, llm, and tts services are managed by this script.
 # Other services defined in docker-compose.runtime.yml (monitor, memory, cli, stt)
 # are either managed elsewhere or not required for the runtime environment handled here.
 if [[ ${#CUSTOM_SERVICES[@]} -gt 0 ]]; then
