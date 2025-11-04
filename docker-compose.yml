@@ -308,6 +308,9 @@ services:
     ports:
       - "8200:8080"
 
+    volumes:
+      - ipc_sockets:/tmp/ipc
+
     # Resource limits
     deploy:
       resources:
@@ -358,6 +361,9 @@ services:
     ports:
       - "8201:8080"
 
+    volumes:
+      - ipc_sockets:/tmp/ipc
+
     deploy:
       resources:
         reservations:
@@ -406,6 +412,9 @@ services:
       - LLAMA_SERVER_ARGS=--embeddings
     ports:
       - "8202:8080"
+
+    volumes:
+      - ipc_sockets:/tmp/ipc
 
     # Resource limits
     deploy:
