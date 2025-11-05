@@ -80,6 +80,18 @@ fi
 echo "Cleaning up dangling resources..."
 docker system prune -f
 
+JUNO_CONFIG_FILE="$ROOT_DIR/.juno_config.toml"
+if [[ -f "$JUNO_CONFIG_FILE" ]]; then
+  rm -f "$JUNO_CONFIG_FILE"
+  echo "Removed configuration file: $JUNO_CONFIG_FILE"
+fi
+
+SETUP_STATE_FILE="$ROOT_DIR/.setup_complete.toml"
+if [[ -f "$SETUP_STATE_FILE" ]]; then
+  rm -f "$SETUP_STATE_FILE"
+  echo "Removed legacy setup state file: $SETUP_STATE_FILE"
+fi
+
 echo ""
 echo "Cleanup complete!"
 echo ""
