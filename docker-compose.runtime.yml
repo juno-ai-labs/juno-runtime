@@ -30,7 +30,7 @@ services:
       - juno-net
     container_name: juno-web-server
     ports:
-      - "8443:8443"
+      - "8080:8080"
   llm:
     build: !reset
     image: ghcr.io/juno-ai-labs/juno-llm

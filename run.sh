@@ -39,47 +39,10 @@ ensure_latest_commit
 DEFAULT_SERVICES=(audio-manager stt-stream-rust llm memory tts message-broker monitor llm-qwen3-4b llm-gemma3-4b llm-embedding)
 DEFAULT_RELEASE_TAG="latest"
 
-# Persistent configuration shared with other tooling.
-JUNO_CONFIG_FILE="$ROOT_DIR/.juno_config.toml"
-
-get_saved_acme_domain() {
-  if [[ ! -f "$JUNO_CONFIG_FILE" ]]; then
-    return
-  fi
-
-  awk -F'"' '
-    /^[[:space:]]*acme_domain[[:space:]]*=/ && NF >= 2 {
-      print $2
-      exit
-    }
-  ' "$JUNO_CONFIG_FILE"
-}
-
-save_acme_domain() {
-  local domain="$1"
-
-  if [[ ! -d "$(dirname "$JUNO_CONFIG_FILE")" ]]; then
-    mkdir -p "$(dirname "$JUNO_CONFIG_FILE")"
-  fi
-
-  local tmp
-  tmp="$(mktemp)"
-
-  if [[ -f "$JUNO_CONFIG_FILE" ]]; then
-    awk '!/^[[:space:]]*acme_domain[[:space:]]*=/' "$JUNO_CONFIG_FILE" > "$tmp"
-  else
-    : > "$tmp"
-  fi
-
-  printf 'acme_domain = "%s"\n' "$domain" >> "$tmp"
-  mv "$tmp" "$JUNO_CONFIG_FILE"
-}
-
 # Parse command line arguments
 RELEASE_TAG=""
 CUSTOM_SERVICES=()
 ENABLE_WEB_SERVER=false
-ACME_DOMAIN_ARG=""
 while [[ $# -gt 0 ]]; do
   case $1 in
     --help)
@@ -89,7 +52,6 @@ while [[ $# -gt 0 ]]; do
       echo "  --release TAG          Use specific release tag (default: $DEFAULT_RELEASE_TAG)"
       echo "  --services FOO BAR ... Specify which services to run (default: ${DEFAULT_SERVICES[*]})"
       echo "  --web-server           Include the browser web server service"
-      echo "  --acme-domain DOMAIN   Persist and use DOMAIN for the web server ACME certificate"
       echo "  --help                 Show this help message"
       echo ""
       echo "Examples:"
@@ -98,7 +60,6 @@ while [[ $# -gt 0 ]]; do
       echo "  $0 --services stt tts"
       echo "  $0 --release 2025-10-20 --services test-playback"
       echo "  $0 --web-server"
-      echo "  $0 --web-server --acme-domain juno.example.com"
       exit 0
       ;;
     --release)
@@ -129,15 +90,6 @@ while [[ $# -gt 0 ]]; do
       ENABLE_WEB_SERVER=true
       shift
       ;;
-    --acme-domain)
-      if [[ -z "${2:-}" || "${2:-}" == --* ]]; then
-        echo "Error: --acme-domain requires a domain value" >&2
-        echo "Usage: $0 [--acme-domain DOMAIN]" >&2
-        exit 1
-      fi
-      ACME_DOMAIN_ARG="$2"
-      shift 2
-      ;;
     *)
       # Example: ./run.sh --services stt llm tts message-broker --release 2025-10-20
       echo "Unknown option: $1" >&2
@@ -157,33 +109,8 @@ if [[ ! -f "$RUNTIME_COMPOSE" ]]; then
   exit 1
 fi
 
-ACME_DOMAIN=""
-if [[ -n "$ACME_DOMAIN_ARG" ]]; then
-  ACME_DOMAIN="$ACME_DOMAIN_ARG"
-  save_acme_domain "$ACME_DOMAIN"
-  echo "Saved ACME domain: $ACME_DOMAIN"
-fi
-
-if [[ "$ENABLE_WEB_SERVER" == true ]]; then
-  if [[ -z "$ACME_DOMAIN" ]]; then
-    ACME_DOMAIN="$(get_saved_acme_domain)"
-  fi
-  if [[ -z "$ACME_DOMAIN" ]]; then
-    read -rp "Enter domain for the web server ACME certificate: " ACME_DOMAIN
-    while [[ -z "$ACME_DOMAIN" ]]; do
-      read -rp "Domain cannot be empty. Enter domain for the web server ACME certificate: " ACME_DOMAIN
-    done
-    save_acme_domain "$ACME_DOMAIN"
-  fi
-  export WEB_SERVER_TLS_ACME_DOMAIN="$ACME_DOMAIN"
-  echo "Using web server ACME domain: $ACME_DOMAIN"
-fi
-
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
-
-
-"$ROOT_DIR/setup-jetson.py"
 
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
