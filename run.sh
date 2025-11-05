@@ -6,6 +6,36 @@ BASE_COMPOSE="$ROOT_DIR/docker-compose.yml"
 RUNTIME_COMPOSE="$ROOT_DIR/docker-compose.runtime.yml"
 PROJECT_NAME="juno"
 
+ensure_latest_commit() {
+  if ! git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    return
+  fi
+
+  if ! git -C "$ROOT_DIR" fetch --quiet origin main; then
+    echo "Warning: Unable to contact origin to verify the latest commit." >&2
+    echo "Skipping up-to-date check. Please check your network connection or manually run 'git fetch origin'." >&2
+    return
+  fi
+
+  if ! latest_commit=$(git -C "$ROOT_DIR" rev-parse --verify origin/main 2>/dev/null); then
+    echo "Unable to verify the latest commit from origin/main." >&2
+    echo "Please ensure the remote 'origin' has a 'main' branch." >&2
+    exit 1
+  fi
+
+  current_commit=$(git -C "$ROOT_DIR" rev-parse HEAD)
+
+  if [[ "$current_commit" != "$latest_commit" ]]; then
+    echo "Error: This checkout is not up to date with origin/main." >&2
+    echo "Please update before running this script:" >&2
+    echo "  git fetch origin" >&2
+    echo "  git pull origin main" >&2
+    exit 1
+  fi
+}
+
+ensure_latest_commit
+
 DEFAULT_SERVICES=(audio-manager stt-stream-rust llm memory tts message-broker monitor llm-qwen3-4b llm-gemma3-4b llm-embedding)
 DEFAULT_RELEASE_TAG="latest"
 
@@ -151,9 +181,6 @@ fi
 
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
-
-
-"$ROOT_DIR/setup-jetson.py"
 
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
