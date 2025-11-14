@@ -432,6 +432,7 @@ services:
       - LLAMA_TOP_P=0.80
       - LLAMA_MIN_P=0.0
       - LLAMA_REPEAT_PENALTY=1.0
+      - LLAMA_CTX_SIZE=8192
     ports:
       - "8201:8080"
 
@@ -484,6 +485,7 @@ services:
       - LLAMA_MIN_P=0.01
       - LLAMA_REPEAT_PENALTY=1.0
       - LLAMA_SERVER_ARGS=--embeddings
+      - LLAMA_CTX_SIZE=4096
     ports:
       - "8202:8080"
 
