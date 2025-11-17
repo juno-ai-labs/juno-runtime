@@ -17,16 +17,16 @@ ensure_latest_commit() {
     return
   fi
 
-  if ! latest_commit=$(git -C "$ROOT_DIR" rev-parse --verify origin/main 2>/dev/null); then
-    echo "Unable to verify the latest commit from origin/main." >&2
+  if ! git -C "$ROOT_DIR" rev-parse --verify origin/main >/dev/null 2>&1; then
+    echo "Unable to verify origin/main." >&2
     echo "Please ensure the remote 'origin' has a 'main' branch." >&2
     exit 1
   fi
 
-  current_commit=$(git -C "$ROOT_DIR" rev-parse HEAD)
-
-  if [[ "$current_commit" != "$latest_commit" ]]; then
-    echo "Error: This checkout is not up to date with origin/main." >&2
+  # Check if there are any file differences between HEAD and origin/main
+  # This allows the script to run even if commits differ but files are identical (e.g., empty commits)
+  if ! git -C "$ROOT_DIR" diff --quiet HEAD origin/main; then
+    echo "Error: This checkout has file differences with origin/main." >&2
     echo "Please update before running this script:" >&2
     echo "  git fetch origin" >&2
     echo "  git pull origin main" >&2
@@ -111,9 +111,6 @@ fi
 
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
-
-
-"$ROOT_DIR/setup-jetson.py"
 
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
