@@ -43,6 +43,7 @@ DEFAULT_RELEASE_TAG="latest"
 RELEASE_TAG=""
 CUSTOM_SERVICES=()
 ENABLE_WEB_SERVER=false
+QUIET=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --help)
@@ -52,6 +53,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --release TAG          Use specific release tag (default: $DEFAULT_RELEASE_TAG)"
       echo "  --services FOO BAR ... Specify which services to run (default: ${DEFAULT_SERVICES[*]})"
       echo "  --web-server           Include the browser web server service"
+      echo "  --quiet                Suppress audio beeps during setup"
       echo "  --help                 Show this help message"
       echo ""
       echo "Examples:"
@@ -90,6 +92,10 @@ while [[ $# -gt 0 ]]; do
       ENABLE_WEB_SERVER=true
       shift
       ;;
+    --quiet)
+      QUIET=true
+      shift
+      ;;
     *)
       # Example: ./run.sh --services stt llm tts message-broker --release 2025-10-20
       echo "Unknown option: $1" >&2
@@ -111,9 +117,6 @@ fi
 
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
-
-
-"$ROOT_DIR/setup-jetson.py"
 
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
@@ -159,7 +162,11 @@ echo "Starting services: ${runtime_services[*]}"
 docker compose -p "$PROJECT_NAME" -f "$COMBINED_FILE" pull --ignore-pull-failures "${runtime_services[@]}"
 
 # Run echo cancellation setup prior to starting runtime services.
-"$ROOT_DIR/setup-echo.sh"
+setup_echo_args=()
+if [[ "$QUIET" == "true" ]]; then
+  setup_echo_args+=("--quiet")
+fi
+"$ROOT_DIR/setup-echo.sh" "${setup_echo_args[@]}"
 
 # Start the runtime services in the foreground so Ctrl-C tears them down,
 # and clean up any orphaned containers for these services.
