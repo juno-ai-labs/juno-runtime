@@ -118,6 +118,9 @@ fi
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
 
+
+"$ROOT_DIR/setup-jetson.py"
+
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"
 
