@@ -287,6 +287,8 @@ services:
 
     volumes:
       - ipc_sockets:/tmp/ipc
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
     environment:
       - PYTHONUNBUFFERED=1
@@ -300,6 +302,8 @@ services:
       - helios-net
 
     depends_on:
+      setup-ipc:
+        condition: service_completed_successfully
       message-broker:
         condition: service_healthy
       audio-manager:
