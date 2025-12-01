@@ -64,7 +64,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
+              capabilities: [gpu]
 
     # Networking
     networks:
@@ -142,7 +142,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
+              capabilities: [gpu]
 
     # Networking
     networks:
@@ -218,7 +218,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
+              capabilities: [gpu]
 
     # Networking
     networks:
@@ -379,6 +379,7 @@ services:
       - LLAMA_TOP_P=0.95
       - LLAMA_MIN_P=0.01
       - LLAMA_REPEAT_PENALTY=1.0
+      - LLAMA_LOG_VERBOSITY=1
     ports:
       - "8200:8080"
 
@@ -392,7 +393,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
+              capabilities: [gpu]
 
     networks:
       - helios-net
@@ -433,6 +434,7 @@ services:
       - LLAMA_MIN_P=0.0
       - LLAMA_REPEAT_PENALTY=1.0
       - LLAMA_CTX_SIZE=8192
+      - LLAMA_LOG_VERBOSITY=1
     ports:
       - "8201:8080"
 
@@ -445,7 +447,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
+              capabilities: [gpu]
 
     networks:
       - helios-net
@@ -486,6 +488,7 @@ services:
       - LLAMA_REPEAT_PENALTY=1.0
       - LLAMA_SERVER_ARGS=--embeddings
       - LLAMA_CTX_SIZE=4096
+      - LLAMA_LOG_VERBOSITY=1
     ports:
       - "8202:8080"
 
@@ -499,7 +502,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
+              capabilities: [gpu]
 
     networks:
       - helios-net
@@ -570,7 +573,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
+              capabilities: [gpu]
 
     # Networking
     networks:
