@@ -348,6 +348,8 @@ services:
 
     # Depends on IPC setup
     depends_on:
+      init-conversation-logs:
+        condition: service_completed_successfully
       setup-ipc:
         condition: service_completed_successfully
       message-broker:
@@ -608,6 +610,18 @@ services:
       - ipc_sockets:/tmp/ipc
     networks:
       - helios-net
+
+  # Ensure conversation log volume is owned by runtime user
+  init-conversation-logs:
+    image: busybox
+    container_name: helios-init-conversation-logs
+    command: >
+      sh -c "mkdir -p /data/conversation_logs && chown -R 1000:1000 /data/conversation_logs"
+    volumes:
+      - conversation_logs:/data/conversation_logs
+    networks:
+      - helios-net
+    restart: "no"
 
   # Message Broker Service (XPUB/XSUB message broker for multi-channel pub/sub)
   message-broker:

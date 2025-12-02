@@ -95,6 +95,10 @@ services:
     networks: !override
       - juno-net
     container_name: juno-ipc-setup
+  init-conversation-logs:
+    networks: !override
+      - juno-net
+    container_name: juno-init-conversation-logs
 
 networks:
   juno-net:
