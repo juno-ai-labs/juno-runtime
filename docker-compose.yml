@@ -328,6 +328,7 @@ services:
     # IPC volumes
     volumes:
       - ipc_sockets:/tmp/ipc
+      - conversation_logs:/data/conversation_logs
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
 
@@ -339,6 +340,7 @@ services:
       - LLM_SERVER_MODEL=default
       - LLM_SERVER_TIMEOUT_SECONDS=60
       - LLM_SERVER_MAX_RETRIES=3
+      - CONVERSATION_LOG_DIR=/data/conversation_logs/conversations
 
     # Networking
     networks:
@@ -765,6 +767,8 @@ volumes:
       type: tmpfs
       device: tmpfs
       o: "size=100m,uid=1000,gid=1000,mode=0777"
+  conversation_logs:
+    driver: local
   memory_data:
     driver: local
 
