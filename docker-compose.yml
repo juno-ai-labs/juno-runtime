@@ -340,7 +340,7 @@ services:
       - LLM_SERVER_MODEL=default
       - LLM_SERVER_TIMEOUT_SECONDS=60
       - LLM_SERVER_MAX_RETRIES=3
-      - CONVERSATION_LOG_DIR=/data/conversation_logs/conversations
+      - CONVERSATION_LOG_DIR=/data/conversation_logs
 
     # Networking
     networks:
