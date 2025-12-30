@@ -689,7 +689,7 @@ services:
       - PYTHONUNBUFFERED=1
       - FILTER_SERVER_URL=http://llm-qwen3-4b:8080 # internal port
       - EMBEDDING_SERVER_URL=http://llm-embedding:8080 # internal port
-      - TRANSCRIPT_DEBOUNCE_SECONDS=60
+      - TRANSCRIPT_DEBOUNCE_SECONDS=5
       - REWRITE_INTERVAL_SECONDS=3600
       - REWRITE_WINDOW_DAYS=7
 
