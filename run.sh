@@ -36,7 +36,7 @@ ensure_latest_commit() {
 
 ensure_latest_commit
 
-DEFAULT_SERVICES=(audio-manager stt-stream-rust llm memory tts message-broker monitor llm-qwen3-4b llm-embedding)
+DEFAULT_SERVICES=(audio-manager stt-stream-rust llm memory tts message-broker monitor llm-qwen3-4b llm-qwen3-4b-memory llm-embedding)
 DEFAULT_RELEASE_TAG="latest"
 
 # Parse command line arguments
@@ -117,9 +117,6 @@ fi
 
 COMBINED_FILE=$(mktemp)
 trap 'rm -f "$COMBINED_FILE"' EXIT
-
-
-"$ROOT_DIR/setup-jetson.py"
 
 # Generate the combined compose configuration while preserving the compose project name.
 docker compose -p "$PROJECT_NAME" -f "$BASE_COMPOSE" -f "$RUNTIME_COMPOSE" config > "$COMBINED_FILE"

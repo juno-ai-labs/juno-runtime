@@ -466,6 +466,62 @@ services:
       setup-ipc:
         condition: service_completed_successfully
 
+  # Qwen3 4B llama.cpp HTTP server, added because llm and memory service were colliding and causing errors in llama.cpp server
+  # This service should eventually be deleted as only 1 instance of the model should be in VRAM
+  llm-qwen3-4b-memory:
+    build:
+      context: .
+      dockerfile: Dockerfile-llama-cpp-server
+      args:
+        - BASE_IMAGE=ghcr.io/juno-ai-labs/l4t-jetpack:r36.4.0
+        - PYTHON_VERSION=310
+        - LLAMA_CPP_RELEASE_TAG=b6937
+        - HF_REPO=unsloth/Qwen3-4B-Instruct-2507-GGUF
+        - HF_QUANTIZATION=Q4_K_M
+      cache_from:
+        - ghcr.io/juno-ai-labs/juno-llm-qwen3-4b-memory:latest
+    container_name: helios-llm-qwen3-4b-memory
+    hostname: llm-qwen3-4b-memory
+    restart: on-failure:3
+
+    runtime: nvidia
+
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      - SERVICE_NAME=llm-qwen3-4b-memory
+      # These are default non-thinking Qwen3 sampling parameters
+      - LLAMA_TEMPERATURE=0.7
+      - LLAMA_TOP_K=20
+      - LLAMA_TOP_P=0.80
+      - LLAMA_MIN_P=0.0
+      - LLAMA_REPEAT_PENALTY=1.0
+      - LLAMA_CTX_SIZE=8192
+      - LLAMA_PARALLEL=1
+      - LLAMA_LOG_VERBOSITY=0
+    ports:
+      - "8203:8080"
+
+    volumes:
+      - ipc_sockets:/tmp/ipc
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    networks:
+      - helios-net
+
+    depends_on:
+      setup-ipc:
+        condition: service_completed_successfully
+
   # Embedding Gemma 300M llama.cpp server
   llm-embedding:
     build:
@@ -690,7 +746,7 @@ services:
     # Environment
     environment:
       - PYTHONUNBUFFERED=1
-      - FILTER_SERVER_URL=http://llm-qwen3-4b:8080 # internal port
+      - FILTER_SERVER_URL=http://llm-qwen3-4b-memory:8080 # internal port
       - EMBEDDING_SERVER_URL=http://llm-embedding:8080 # internal port
       - TRANSCRIPT_DEBOUNCE_SECONDS=5
       - REWRITE_INTERVAL_SECONDS=3600
@@ -705,7 +761,7 @@ services:
         condition: service_completed_successfully
       message-broker:
         condition: service_healthy
-      llm-qwen3-4b:
+      llm-qwen3-4b-memory:
         condition: service_started
       llm-embedding:
         condition: service_started
